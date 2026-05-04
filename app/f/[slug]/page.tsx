@@ -371,77 +371,93 @@ export default async function FreebiePage({ params }: Props) {
 
           {/* ── Optional resource link ── */}
           {data.link_url && (
-            <a
-              href={data.link_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-                marginTop: "16px",
-                padding: "16px 20px",
-                borderRadius: "14px",
-                border: "1px solid rgba(255,255,255,0.1)",
-                background: "rgba(255,255,255,0.04)",
-                textDecoration: "none",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: "rgba(251,191,36,0.12)",
-                    border: "1px solid rgba(251,191,36,0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "16px",
-                    flexShrink: 0,
-                  }}
-                >
-                  🔗
-                </div>
-                <div>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color: "#fff",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {data.link_label || "Resource"}
-                  </p>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-geist-mono), monospace",
-                      fontSize: "10px",
-                      color: "rgba(255,255,255,0.3)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "200px",
-                    }}
-                  >
-                    {data.link_url.replace(/^https?:\/\//, "")}
-                  </p>
-                </div>
-              </div>
-              <span
+            <div style={{ marginTop: "20px" }}>
+              {/* Label above */}
+              <p
                 style={{
-                  fontSize: "18px",
-                  color: "#FBBF24",
-                  flexShrink: 0,
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "9px",
+                  letterSpacing: "0.18em",
+                  color: "rgba(251,191,36,0.5)",
+                  textTransform: "uppercase",
+                  marginBottom: "8px",
+                  paddingLeft: "2px",
                 }}
               >
-                ↗
-              </span>
-            </a>
+                📎 Resource
+              </p>
+              <a
+                href={data.link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  padding: "18px 20px",
+                  borderRadius: "14px",
+                  border: "2px solid rgba(251,191,36,0.45)",
+                  background: "rgba(251,191,36,0.08)",
+                  textDecoration: "none",
+                  boxShadow: "0 0 24px rgba(251,191,36,0.1), inset 0 1px 0 rgba(251,191,36,0.08)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "10px",
+                      background: "#FBBF24",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "20px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    🔗
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 800,
+                        color: "#fff",
+                        marginBottom: "3px",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {data.link_label || "Resource"}
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-geist-mono), monospace",
+                        fontSize: "10px",
+                        color: "rgba(251,191,36,0.5)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "220px",
+                      }}
+                    >
+                      {data.link_url.replace(/^https?:\/\//, "")}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: "22px",
+                    color: "#FBBF24",
+                    flexShrink: 0,
+                    fontWeight: 700,
+                  }}
+                >
+                  ↗
+                </span>
+              </a>
+            </div>
           )}
 
           {/* ── Divider ── */}

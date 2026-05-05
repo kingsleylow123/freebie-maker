@@ -589,8 +589,7 @@ export default function SurveyPage() {
             paddingTop: "8px",
           }}
         >
-          {idx > 0 && (
-            <button
+          <button
               onClick={goBack}
               style={{
                 minHeight: "52px",
@@ -608,7 +607,6 @@ export default function SurveyPage() {
             >
               ← Back
             </button>
-          )}
           <button
             onClick={goNext}
             disabled={!currentAnswerIsValid()}

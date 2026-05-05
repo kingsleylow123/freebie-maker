@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
 
     const respondent_number = data.respondent_number;
 
-    // Fire Zapier webhook non-blocking (don't await, don't fail on error)
-    if (process.env.ZAPIER_WEBHOOK_URL) {
-      fetch(process.env.ZAPIER_WEBHOOK_URL, {
+    // Fire Google Sheets webhook non-blocking (Apps Script Web App URL)
+    if (process.env.SHEETS_WEBHOOK_URL) {
+      fetch(process.env.SHEETS_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...row, respondent_number }),

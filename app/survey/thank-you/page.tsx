@@ -141,6 +141,17 @@ export default function ThankYouPage() {
         <a href={shareUrl} target="_blank" rel="noopener noreferrer" style={styles.shareButton}>
           📱 Share on WhatsApp
         </a>
+
+        <div style={{ marginTop: 32 }}>
+          <a href="/survey/leaderboard" style={{
+            color: 'rgba(237,237,237,0.5)',
+            fontSize: 14,
+            textDecoration: 'none',
+            borderBottom: '1px solid rgba(237,237,237,0.2)',
+          }}>
+            🏆 See which community is leading →
+          </a>
+        </div>
       </div>
     </div>
   )

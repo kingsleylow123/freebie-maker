@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getVisibleSteps, getStepQuestion, SurveyAnswers, StepKey } from "@/lib/survey";
 
 // ─── Keyframe styles injected once ────────────────────────────────────────────
@@ -20,29 +21,26 @@ const ANIMATION_CSS = `
 `;
 
 export default function SurveyPage() {
+  const router = useRouter();
   const [step, setStep] = useState<StepKey | null>(null);
   const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [submitting, setSubmitting] = useState(false);
-  const [alreadyDone, setAlreadyDone] = useState(false);
+  const [alreadyDone] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem("malaysia_ai_pulse_done") === "1"
+  );
   const [counter, setCounter] = useState<{ count: number; goal: number }>({ count: 0, goal: 1000 });
-  const [startTime] = useState(() => Date.now());
-  const [ref, setRef] = useState("");
+  const [ref] = useState(
+    () => typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("ref") ?? "") : ""
+  );
   const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const startTime = typeof window !== "undefined" ? window.performance.now() : 0;
 
-  // On mount: check duplicate, fetch counter, read ?ref=
+  // Fetch live counter on mount
   useEffect(() => {
-    if (localStorage.getItem("malaysia_ai_pulse_done") === "1") {
-      setAlreadyDone(true);
-    }
     fetch("/api/survey/counter")
       .then((r) => r.json())
       .then((d) => setCounter(d))
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setRef(params.get("ref") ?? "");
   }, []);
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
@@ -96,12 +94,13 @@ export default function SurveyPage() {
   async function handleSubmit() {
     setSubmitting(true);
     try {
+      const elapsed = Math.round((window.performance.now() - startTime) / 1000);
       const res = await fetch("/api/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...answers,
-          completion_time_seconds: Math.round((Date.now() - startTime) / 1000),
+          completion_time_seconds: elapsed,
           user_agent: navigator.userAgent,
           referrer: ref,
         }),
@@ -112,7 +111,7 @@ export default function SurveyPage() {
       localStorage.setItem("malaysia_ai_pulse_done", "1");
       localStorage.setItem("malaysia_ai_pulse_respondent", String(json.respondent_number));
 
-      window.location.href = `/survey/thank-you?n=${json.respondent_number}`;
+      router.push(`/survey/thank-you?n=${json.respondent_number}`);
     } catch {
       alert("Something went wrong. Please try again.");
       setSubmitting(false);

@@ -1,24 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export default function ThankYouPage() {
-  const [respondentNumber, setRespondentNumber] = useState<number | null>(null)
-  const [shareUrl, setShareUrl] = useState('')
-
-  useEffect(() => {
+  const [{ respondentNumber, shareUrl }] = useState(() => {
+    if (typeof window === 'undefined') return { respondentNumber: null, shareUrl: '' }
     const params = new URLSearchParams(window.location.search)
     const n = parseInt(
       params.get('n') ?? localStorage.getItem('malaysia_ai_pulse_respondent') ?? '0',
       10
     )
-    if (n > 0) setRespondentNumber(n)
-
     const msg = encodeURIComponent(
       `I just took Malaysia AI Pulse 2026 🇲🇾 — quick survey on AI in Malaysia.\nI'm respondent #${n}. Takes 3 mins → ${window.location.origin}/survey?ref=whatsapp_share`
     )
-    setShareUrl(`https://wa.me/?text=${msg}`)
-  }, [])
+    return {
+      respondentNumber: n > 0 ? n : null,
+      shareUrl: `https://wa.me/?text=${msg}`,
+    }
+  })
 
   const skoolUrl = process.env.NEXT_PUBLIC_SKOOL_URL ?? '#'
   const whatsappUrl = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
@@ -121,7 +120,7 @@ export default function ThankYouPage() {
           {respondentNumber ? `You're Malaysian #${respondentNumber}` : 'Thank you!'}
         </div>
 
-        <p style={styles.subtitle}>Thank you for helping map Malaysia's AI future.</p>
+        <p style={styles.subtitle}>Thank you for helping map Malaysia&apos;s AI future.</p>
 
         <div style={styles.divider} />
 

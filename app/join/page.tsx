@@ -17,6 +17,10 @@ const ANIMATION_CSS = `
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 `;
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
@@ -62,8 +66,16 @@ const COMMUNITY_VALUE_OPTIONS = [
 ];
 
 const EVENT_PREFERENCE_OPTIONS = [
-  { value: "online", label: "Online events & workshops" },
+  { value: "online", label: "Online events & workshops (Zoom)" },
   { value: "offline_kl", label: "Offline events & workshops (KL)" },
+];
+
+const SOCIAL_PLATFORMS = [
+  { value: "instagram", label: "Instagram", icon: "📸" },
+  { value: "youtube",   label: "YouTube",   icon: "▶️" },
+  { value: "tiktok",    label: "TikTok",    icon: "🎵" },
+  { value: "facebook",  label: "Facebook",  icon: "👤" },
+  { value: "website",   label: "Website",   icon: "🌐" },
 ];
 
 // ─── State type ───────────────────────────────────────────────────────────────
@@ -79,6 +91,7 @@ interface JoinAnswers {
   community_value: string[];
   event_preference: string[];
   social_link: string;
+  social_platform: string;
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -107,6 +120,7 @@ export default function JoinPage() {
     community_value: [],
     event_preference: [],
     social_link: "",
+    social_platform: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
@@ -134,8 +148,11 @@ export default function JoinPage() {
   function isStepValid(s: number): boolean {
     if (s === 10) return true; // optional
     if (s === 1) return answers.name.trim().length > 0;
-    if (s === 2) return answers.email.trim().length > 0;
-    if (s === 3) return answers.phone.trim().length > 0;
+    if (s === 2) return answers.email.includes("@") && answers.email.trim().length > 3;
+    if (s === 3) {
+      const digits = answers.phone.replace(/[^0-9]/g, "");
+      return digits.length === 10 || digits.length === 11;
+    }
     if (s === 4) return answers.role.length > 0;
     if (s === 5) return answers.team_size.length > 0;
     if (s === 6) return answers.ai_use_cases.length > 0;
@@ -153,11 +170,17 @@ export default function JoinPage() {
         ? new URLSearchParams(window.location.search).get("ref") ?? ""
         : "";
     try {
+      const socialLinkCombined =
+        answers.social_platform && answers.social_link
+          ? `${answers.social_platform}: ${answers.social_link}`
+          : answers.social_link || answers.social_platform || "";
+
       const res = await fetch("/api/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...answers,
+          social_link: socialLinkCombined,
           referrer: ref,
           user_agent: navigator.userAgent,
         }),
@@ -263,34 +286,117 @@ export default function JoinPage() {
             justifyContent: "center",
             paddingTop: "48px",
             paddingBottom: "48px",
-            gap: "32px",
+            gap: "28px",
+            position: "relative",
           }}
         >
+          {/* Radial glow behind flag */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "300px",
+              background:
+                "radial-gradient(ellipse 60% 30% at 50% 0%, rgba(232,118,10,0.12) 0%, transparent 70%)",
+              pointerEvents: "none",
+            }}
+          />
+
           {/* Hero */}
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "52px", marginBottom: "16px" }}>🇲🇾</div>
+          <div style={{ textAlign: "center", position: "relative" }}>
+            {/* Flag */}
+            <div
+              style={{
+                fontSize: "60px",
+                marginBottom: "16px",
+                animation: "fadeIn 0.6s ease both",
+              }}
+            >
+              🇲🇾
+            </div>
+
+            {/* Small caps label */}
+            <p
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "3px",
+                textTransform: "uppercase",
+                color: "rgba(232,118,10,0.75)",
+                margin: "0 0 10px",
+                fontVariant: "small-caps",
+              }}
+            >
+              Claude Malaysia
+            </p>
+
+            {/* Main heading */}
             <h1
               style={{
-                fontSize: "clamp(24px, 6vw, 32px)",
+                fontSize: "clamp(28px, 7vw, 36px)",
                 fontWeight: 800,
                 letterSpacing: "-0.02em",
                 color: T.text,
-                marginBottom: "12px",
+                marginBottom: "14px",
                 lineHeight: 1.15,
               }}
             >
-              Join Claude Malaysia
+              Join the AI Community
             </h1>
+
+            {/* Subtitle */}
             <p
               style={{
                 fontSize: "16px",
                 color: T.muted,
                 lineHeight: 1.6,
                 margin: 0,
+                maxWidth: "380px",
+                marginInline: "auto",
               }}
             >
-              The AI community for Malaysians building with AI
+              {"Malaysia's fastest-growing community of developers, founders, and marketers building real businesses with AI."}
             </p>
+          </div>
+
+          {/* Benefits card */}
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.border}`,
+              borderRadius: "14px",
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            {[
+              "Monthly workshops — online (Zoom) + offline in KL",
+              "Network with 100+ developers, founders & marketers",
+              "Get your free personalised AI action plan",
+              "First access to AI tools, events & opportunities in Malaysia",
+            ].map((benefit) => (
+              <div
+                key={benefit}
+                style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}
+              >
+                <span style={{ fontSize: "16px", flexShrink: 0, marginTop: "1px" }}>
+                  ✅
+                </span>
+                <span
+                  style={{
+                    fontSize: "15px",
+                    color: "rgba(237,237,237,0.8)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {benefit}
+                </span>
+              </div>
+            ))}
           </div>
 
           {/* CTA button */}
@@ -312,7 +418,8 @@ export default function JoinPage() {
               border: "none",
               cursor: "pointer",
               letterSpacing: "-0.01em",
-              boxShadow: "0 0 32px rgba(232,118,10,0.25), 0 2px 8px rgba(0,0,0,0.4)",
+              boxShadow:
+                "0 0 40px rgba(232,118,10,0.3), 0 0 80px rgba(232,118,10,0.1), 0 2px 8px rgba(0,0,0,0.4)",
             }}
           >
             Join Now — It&apos;s Free →
@@ -323,10 +430,10 @@ export default function JoinPage() {
               textAlign: "center",
               fontSize: "13px",
               color: "rgba(237,237,237,0.35)",
-              margin: "-16px 0 0",
+              margin: "-12px 0 0",
             }}
           >
-            Takes 2 mins · Get your personalised AI action plan
+            Takes 2 mins · 100% free
           </p>
         </div>
       </main>
@@ -352,8 +459,20 @@ export default function JoinPage() {
       case 7: return "What is your biggest pain point in your life or business right now?";
       case 8: return "What value can you bring to the Claude Malaysia community?";
       case 9: return "Notify me about:";
-      case 10: return "Your best social media link";
+      case 10: return "Your social media";
       default: return "";
+    }
+  }
+
+  // ─── Social link placeholder by platform ─────────────────────────────────────
+  function getSocialPlaceholder(platform: string): string {
+    switch (platform) {
+      case "instagram": return "@yourhandle or instagram.com/you";
+      case "youtube":   return "youtube.com/channel or @handle";
+      case "tiktok":    return "@yourhandle or tiktok.com/@you";
+      case "facebook":  return "facebook.com/yourpage";
+      case "website":   return "https://yourwebsite.com";
+      default:          return "Your link or handle";
     }
   }
 
@@ -376,29 +495,47 @@ export default function JoinPage() {
 
     if (step === 2) {
       return (
-        <input
-          type="email"
-          autoFocus
-          value={answers.email}
-          onChange={(e) => setAnswers((p) => ({ ...p, email: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && valid && goNext()}
-          placeholder="you@example.com"
-          style={textInputStyle}
-        />
+        <div>
+          <input
+            type="email"
+            autoFocus
+            value={answers.email}
+            onChange={(e) => setAnswers((p) => ({ ...p, email: e.target.value }))}
+            onKeyDown={(e) => e.key === "Enter" && valid && goNext()}
+            placeholder="you@example.com"
+            style={textInputStyle}
+          />
+          {answers.email.length > 0 && !answers.email.includes("@") && (
+            <p style={{ color: "#ff6b6b", fontSize: "13px", margin: "8px 0 0" }}>
+              Please enter a valid email address (must include @)
+            </p>
+          )}
+        </div>
       );
     }
 
     if (step === 3) {
+      const phoneDigits = answers.phone.replace(/[^0-9]/g, "");
       return (
-        <input
-          type="tel"
-          autoFocus
-          value={answers.phone}
-          onChange={(e) => setAnswers((p) => ({ ...p, phone: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && valid && goNext()}
-          placeholder="+60 12-345 6789"
-          style={textInputStyle}
-        />
+        <div>
+          <input
+            type="tel"
+            autoFocus
+            value={answers.phone}
+            onChange={(e) => setAnswers((p) => ({ ...p, phone: e.target.value }))}
+            onKeyDown={(e) => e.key === "Enter" && valid && goNext()}
+            placeholder="e.g. 0122850125"
+            style={textInputStyle}
+          />
+          {answers.phone.length > 0 &&
+            phoneDigits.length > 0 &&
+            phoneDigits.length !== 10 &&
+            phoneDigits.length !== 11 && (
+              <p style={{ color: "#ff6b6b", fontSize: "13px", margin: "8px 0 0" }}>
+                Please enter a valid Malaysian number (10 or 11 digits)
+              </p>
+            )}
+        </div>
       );
     }
 
@@ -838,20 +975,76 @@ export default function JoinPage() {
       );
     }
 
-    // Step 10: social link (optional)
+    // Step 10: social platform chips + conditional link input (optional)
     if (step === 10) {
       return (
-        <input
-          type="url"
-          autoFocus
-          value={answers.social_link}
-          onChange={(e) =>
-            setAnswers((p) => ({ ...p, social_link: e.target.value }))
-          }
-          onKeyDown={(e) => e.key === "Enter" && goNext()}
-          placeholder="FB / IG / TikTok / YouTube / Website URL"
-          style={textInputStyle}
-        />
+        <div>
+          {/* Platform chips */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "10px",
+              marginBottom: answers.social_platform ? "16px" : "0",
+            }}
+          >
+            {SOCIAL_PLATFORMS.map((platform) => {
+              const selected = answers.social_platform === platform.value;
+              return (
+                <button
+                  key={platform.value}
+                  onClick={() =>
+                    setAnswers((p) => ({
+                      ...p,
+                      social_platform:
+                        p.social_platform === platform.value
+                          ? ""
+                          : platform.value,
+                      social_link: p.social_platform === platform.value ? p.social_link : "",
+                    }))
+                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 16px",
+                    borderRadius: "999px",
+                    background: selected
+                      ? "rgba(232,118,10,0.15)"
+                      : T.surface,
+                    border: selected
+                      ? "1.5px solid #E8760A"
+                      : `1px solid ${T.border}`,
+                    color: selected ? T.text : "rgba(237,237,237,0.6)",
+                    fontSize: "14px",
+                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    fontWeight: selected ? 600 : 400,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span>{platform.icon}</span>
+                  <span>{platform.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Conditional link input */}
+          {answers.social_platform && (
+            <input
+              type="text"
+              autoFocus
+              value={answers.social_link}
+              onChange={(e) =>
+                setAnswers((p) => ({ ...p, social_link: e.target.value }))
+              }
+              onKeyDown={(e) => e.key === "Enter" && goNext()}
+              placeholder={getSocialPlaceholder(answers.social_platform)}
+              style={textInputStyle}
+            />
+          )}
+        </div>
       );
     }
 
@@ -946,7 +1139,7 @@ export default function JoinPage() {
         {/* Optional note for step 10 */}
         {step === 10 && (
           <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
-            Optional — you can skip this step
+            Optional — which platform are you most active on?
           </p>
         )}
 

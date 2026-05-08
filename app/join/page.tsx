@@ -24,8 +24,34 @@ const ANIMATION_CSS = `
 `;
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
-const STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-const TOTAL_STEPS = 10;
+type StepKey = '1'|'2'|'3'|'4'|'4a'|'4b'|'5'|'6'|'7'|'8'|'9'|'10'
+
+function getVisibleSteps(role: string): StepKey[] {
+  const base: StepKey[] = ['1','2','3','4']
+  if (role === 'business_owner') {
+    base.push('4a', '4b')
+  }
+  base.push('5','6','7','8','9','10')
+  return base
+}
+
+const INDUSTRY_OPTIONS = [
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'fnb', label: 'F&B' },
+  { value: 'professional_services', label: 'Professional Services' },
+  { value: 'education', label: 'Education' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'tech', label: 'Tech / Software' },
+  { value: 'others', label: 'Others' },
+]
+
+const CLIENT_TYPE_OPTIONS = [
+  { value: 'b2b', label: 'B2B — I sell to businesses' },
+  { value: 'b2c', label: 'B2C — I sell to consumers' },
+  { value: 'both', label: 'Both' },
+]
 
 const ROLE_OPTIONS = [
   { value: "student", label: "Student" },
@@ -84,6 +110,8 @@ interface JoinAnswers {
   email: string;
   phone: string;
   role: string;
+  industry: string;
+  client_type: string;
   team_size: string;
   ai_use_cases: string[];
   ai_use_cases_other: string;
@@ -107,12 +135,14 @@ const T = {
 
 export default function JoinPage() {
   const router = useRouter();
-  const [step, setStep] = useState(0); // 0 = landing, 1–10 = steps
+  const [step, setStep] = useState<StepKey | null>(null); // null = landing
   const [answers, setAnswers] = useState<JoinAnswers>({
     name: "",
     email: "",
     phone: "",
     role: "",
+    industry: "",
+    client_type: "",
     team_size: "",
     ai_use_cases: [],
     ai_use_cases_other: "",
@@ -126,40 +156,42 @@ export default function JoinPage() {
   const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   // ─── Navigation ─────────────────────────────────────────────────────────────
+  const visibleSteps = getVisibleSteps(answers.role)
+  const currentIndex = step ? visibleSteps.indexOf(step) : -1
+
   function goNext() {
-    if (step < TOTAL_STEPS) {
-      setDirection("forward");
-      setStep(step + 1);
+    if (step === null) { setDirection("forward"); setStep(visibleSteps[0]); return }
+    if (currentIndex < visibleSteps.length - 1) {
+      setDirection("forward")
+      setStep(visibleSteps[currentIndex + 1])
     } else {
-      handleSubmit();
+      handleSubmit()
     }
   }
 
   function goBack() {
-    setDirection("back");
-    if (step > 1) {
-      setStep(step - 1);
-    } else {
-      setStep(0);
-    }
+    setDirection("back")
+    if (step === null) return
+    if (currentIndex > 0) setStep(visibleSteps[currentIndex - 1])
+    else setStep(null)
   }
 
   // ─── Validation ──────────────────────────────────────────────────────────────
-  function isStepValid(s: number): boolean {
-    if (s === 10) return true; // optional
-    if (s === 1) return answers.name.trim().length > 0;
-    if (s === 2) return answers.email.includes("@") && answers.email.trim().length > 3;
-    if (s === 3) {
-      const digits = answers.phone.replace(/[^0-9]/g, "");
-      return digits.length === 10 || digits.length === 11;
-    }
-    if (s === 4) return answers.role.length > 0;
-    if (s === 5) return answers.team_size.length > 0;
-    if (s === 6) return answers.ai_use_cases.length > 0;
-    if (s === 7) return answers.pain_point.trim().length > 0;
-    if (s === 8) return answers.community_value.length > 0;
-    if (s === 9) return answers.event_preference.length > 0;
-    return false;
+  function isStepValid(s: StepKey | null): boolean {
+    if (!s) return false
+    if (s === '10') return true  // optional
+    if (s === '1') return answers.name.trim().length > 0
+    if (s === '2') return answers.email.includes('@') && answers.email.trim().length > 3
+    if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length===10||d.length===11 }
+    if (s === '4') return answers.role.length > 0
+    if (s === '4a') return answers.industry.length > 0
+    if (s === '4b') return answers.client_type.length > 0
+    if (s === '5') return answers.team_size.length > 0
+    if (s === '6') return answers.ai_use_cases.length > 0
+    if (s === '7') return answers.pain_point.trim().length > 0
+    if (s === '8') return answers.community_value.length > 0
+    if (s === '9') return answers.event_preference.length > 0
+    return false
   }
 
   // ─── Submission ──────────────────────────────────────────────────────────────
@@ -276,7 +308,7 @@ export default function JoinPage() {
   }
 
   // ─── Landing screen ──────────────────────────────────────────────────────────
-  if (step === 0) {
+  if (step === null) {
     return (
       <main style={pageStyle}>
         <style>{ANIMATION_CSS}</style>
@@ -403,7 +435,7 @@ export default function JoinPage() {
           <button
             onClick={() => {
               setDirection("forward");
-              setStep(1);
+              setStep(visibleSteps[0]);
             }}
             style={{
               display: "block",
@@ -441,25 +473,29 @@ export default function JoinPage() {
   }
 
   // ─── Question wizard ─────────────────────────────────────────────────────────
-  const progressWidth = `${(step / TOTAL_STEPS) * 100}%`;
+  const progressPct = step ? ((currentIndex + 1) / visibleSteps.length) * 100 : 0
+  const progressLabel = step ? `Step ${currentIndex + 1} of ${visibleSteps.length}` : ''
+  const progressWidth = `${progressPct}%`;
   const animationName =
     direction === "forward" ? "slideInFromRight" : "slideInFromLeft";
-  const isLastStep = step === TOTAL_STEPS;
+  const isLastStep = step !== null && currentIndex === visibleSteps.length - 1;
   const valid = isStepValid(step);
 
   // ─── Step question helpers ────────────────────────────────────────────────────
-  function getQuestion(s: number): string {
+  function getQuestion(s: StepKey): string {
     switch (s) {
-      case 1: return "What's your name?";
-      case 2: return "What's your email address?";
-      case 3: return "What's your WhatsApp number?";
-      case 4: return "What's your role?";
-      case 5: return "How big is your team?";
-      case 6: return "What do you feel AI can help you with, but haven't explored yet?";
-      case 7: return "What is your biggest pain point in your life or business right now?";
-      case 8: return "What value can you bring to the Claude Malaysia community?";
-      case 9: return "Notify me about:";
-      case 10: return "Your social media";
+      case '1': return "What's your name?";
+      case '2': return "What's your email address?";
+      case '3': return "What's your WhatsApp number?";
+      case '4': return "What's your role?";
+      case '4a': return "What industry are you in?";
+      case '4b': return "Who are your main clients?";
+      case '5': return "How big is your team?";
+      case '6': return "What do you feel AI can help you with, but haven't explored yet?";
+      case '7': return "What is your biggest pain point in your life or business right now?";
+      case '8': return "What value can you bring to the Claude Malaysia community?";
+      case '9': return "Notify me about:";
+      case '10': return "Your social media";
       default: return "";
     }
   }
@@ -479,7 +515,7 @@ export default function JoinPage() {
   // ─── Render input for current step ───────────────────────────────────────────
   function renderInput() {
     // Steps 1–3: text inputs
-    if (step === 1) {
+    if (step === '1') {
       return (
         <input
           type="text"
@@ -493,7 +529,7 @@ export default function JoinPage() {
       );
     }
 
-    if (step === 2) {
+    if (step === '2') {
       return (
         <div>
           <input
@@ -514,7 +550,7 @@ export default function JoinPage() {
       );
     }
 
-    if (step === 3) {
+    if (step === '3') {
       const phoneDigits = answers.phone.replace(/[^0-9]/g, "");
       return (
         <div>
@@ -540,7 +576,7 @@ export default function JoinPage() {
     }
 
     // Step 4: role radio
-    if (step === 4) {
+    if (step === '4') {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {ROLE_OPTIONS.map((opt) => {
@@ -593,8 +629,116 @@ export default function JoinPage() {
       );
     }
 
+    // Step 4a: industry radio (business_owner only)
+    if (step === '4a') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {INDUSTRY_OPTIONS.map((opt) => {
+            const selected = answers.industry === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setAnswers((p) => ({ ...p, industry: opt.value }))}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  minHeight: "56px",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected
+                    ? "1.5px solid #E8760A"
+                    : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px",
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: selected
+                      ? "5px solid #E8760A"
+                      : "2px solid rgba(255,255,255,0.2)",
+                    flexShrink: 0,
+                    background: selected ? "#E8760A22" : "transparent",
+                    transition: "all 0.15s ease",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Step 4b: client type radio (business_owner only)
+    if (step === '4b') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {CLIENT_TYPE_OPTIONS.map((opt) => {
+            const selected = answers.client_type === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setAnswers((p) => ({ ...p, client_type: opt.value }))}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  minHeight: "56px",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected
+                    ? "1.5px solid #E8760A"
+                    : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px",
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: selected
+                      ? "5px solid #E8760A"
+                      : "2px solid rgba(255,255,255,0.2)",
+                    flexShrink: 0,
+                    background: selected ? "#E8760A22" : "transparent",
+                    transition: "all 0.15s ease",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     // Step 5: team size radio
-    if (step === 5) {
+    if (step === '5') {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {TEAM_SIZE_OPTIONS.map((opt) => {
@@ -650,7 +794,7 @@ export default function JoinPage() {
     }
 
     // Step 6: AI use cases multi-select (max 3) + others text
-    if (step === 6) {
+    if (step === '6') {
       const maxReached = answers.ai_use_cases.length >= 3;
       return (
         <div>
@@ -773,7 +917,7 @@ export default function JoinPage() {
     }
 
     // Step 7: pain point textarea
-    if (step === 7) {
+    if (step === '7') {
       return (
         <textarea
           autoFocus
@@ -792,7 +936,7 @@ export default function JoinPage() {
     }
 
     // Step 8: community value multi-select (no max)
-    if (step === 8) {
+    if (step === '8') {
       return (
         <div>
           <p
@@ -884,7 +1028,7 @@ export default function JoinPage() {
     }
 
     // Step 9: event preference multi-select (no max)
-    if (step === 9) {
+    if (step === '9') {
       return (
         <div>
           <p
@@ -976,7 +1120,7 @@ export default function JoinPage() {
     }
 
     // Step 10: social platform chips + conditional link input (optional)
-    if (step === 10) {
+    if (step === '10') {
       return (
         <div>
           {/* Platform chips */}
@@ -1079,7 +1223,7 @@ export default function JoinPage() {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            Step {step} of {TOTAL_STEPS}
+            {progressLabel}
           </span>
           <span
             style={{
@@ -1087,7 +1231,7 @@ export default function JoinPage() {
               color: "rgba(237,237,237,0.3)",
             }}
           >
-            {Math.round((step / TOTAL_STEPS) * 100)}%
+            {Math.round(progressPct)}%
           </span>
         </div>
         {/* Track */}
@@ -1133,11 +1277,23 @@ export default function JoinPage() {
             margin: 0,
           }}
         >
-          {getQuestion(step)}
+          {step ? getQuestion(step) : ""}
         </h2>
 
+        {/* Subtitles for conditional steps */}
+        {step === '4a' && (
+          <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
+            Helps us match you with the right people and workshops
+          </p>
+        )}
+        {step === '4b' && (
+          <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
+            {"We'll tailor your AI recommendations based on this"}
+          </p>
+        )}
+
         {/* Optional note for step 10 */}
-        {step === 10 && (
+        {step === '10' && (
           <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
             Optional — which platform are you most active on?
           </p>
@@ -1202,7 +1358,7 @@ export default function JoinPage() {
             </button>
           </div>
           {/* Step 10 skip link */}
-          {step === 10 && (
+          {step === '10' && (
             <button
               onClick={goNext}
               style={{

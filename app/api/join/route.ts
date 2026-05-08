@@ -193,6 +193,8 @@ export async function POST(req: NextRequest) {
         ? body.event_preference
         : null,
       social_link: body.social_link ?? null,
+      industry: body.industry ?? null,
+      client_type: body.client_type ?? null,
       referrer: body.referrer ?? null,
       user_agent: body.user_agent ?? null,
     };

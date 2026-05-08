@@ -115,6 +115,14 @@ export default function JoinThankYouPage() {
           }}>
             Claude Malaysia
           </p>
+          <p style={{
+            fontSize: '13px',
+            color: 'rgba(237,237,237,0.5)',
+            margin: '0 0 6px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase' as const,
+            fontWeight: 600,
+          }}>Welcome</p>
           <div style={{
             fontSize: 'clamp(44px, 11vw, 68px)',
             fontWeight: 900,
@@ -123,7 +131,7 @@ export default function JoinThankYouPage() {
             marginBottom: '10px',
             letterSpacing: '-1px',
           }}>
-            {memberNumber !== null ? `Member #${memberNumber}` : 'Welcome'}
+            Member #{memberNumber ?? '—'}
           </div>
           <p style={{
             fontSize: '12px',

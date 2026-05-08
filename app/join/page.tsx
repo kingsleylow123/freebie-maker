@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 // ─── Keyframe styles injected once ────────────────────────────────────────────
@@ -142,6 +142,14 @@ export default function JoinPage() {
   const [alreadyJoined] = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("claude_malaysia_joined") === "1"
   );
+  const [sessionId] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    const stored = sessionStorage.getItem('cm_session_id')
+    if (stored) return stored
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36)
+    sessionStorage.setItem('cm_session_id', id)
+    return id
+  })
   const [answers, setAnswers] = useState<JoinAnswers>({
     name: "",
     email: "",
@@ -161,15 +169,40 @@ export default function JoinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
 
+  // ─── Drop-off tracking ───────────────────────────────────────────────────────
+  function track(stepKey: string, eventType: 'enter' | 'complete' | 'abandoned') {
+    if (!sessionId) return
+    fetch('/api/join/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, step: stepKey, event_type: eventType }),
+    }).catch(() => {})
+  }
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (step !== null && !submitting) {
+        navigator.sendBeacon('/api/join/track', JSON.stringify({
+          session_id: sessionId,
+          step: step ?? 'landing',
+          event_type: 'abandoned',
+        }))
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
+  }, [step, sessionId, submitting])
+
   // ─── Navigation ─────────────────────────────────────────────────────────────
   const visibleSteps = getVisibleSteps(answers.role)
   const currentIndex = step ? visibleSteps.indexOf(step) : -1
 
   function goNext() {
-    if (step === null) { setDirection("forward"); setStep(visibleSteps[0]); return }
+    if (step === null) { setDirection("forward"); setStep(visibleSteps[0]); track(visibleSteps[0], 'enter'); return }
     if (currentIndex < visibleSteps.length - 1) {
       setDirection("forward")
       setStep(visibleSteps[currentIndex + 1])
+      track(visibleSteps[currentIndex + 1], 'enter')
     } else {
       handleSubmit()
     }
@@ -185,7 +218,7 @@ export default function JoinPage() {
   // ─── Validation ──────────────────────────────────────────────────────────────
   function isStepValid(s: StepKey | null): boolean {
     if (!s) return false
-    if (s === '10') return true  // optional
+    if (s === '10') return answers.social_platform ? answers.social_link.trim().length > 0 : true
     if (s === '1') return answers.name.trim().length > 0
     if (s === '2') { const e = answers.email.trim(); const at = e.indexOf('@'); return at > 0 && (e.includes('.com') || e.includes('.my') || e.includes('.net') || e.includes('.io') || e.includes('.org') || e.includes('.co')) }
     if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length===10||d.length===11 }
@@ -238,6 +271,7 @@ export default function JoinPage() {
       // Store phone for referral link on thank-you page
       sessionStorage.setItem("cm_phone", answers.phone.replace(/[^0-9]/g, ""));
       localStorage.setItem("claude_malaysia_joined", "1");
+      track('complete', 'complete')
       router.push(`/join/thank-you?n=${json.member_number}`);
     } catch {
       alert("Something went wrong. Please try again.");
@@ -588,9 +622,9 @@ export default function JoinPage() {
             placeholder="you@example.com"
             style={textInputStyle}
           />
-          {answers.email.length > 0 && (() => { const e = answers.email.trim(); const at = e.indexOf('@'); return !(at > 0 && e.indexOf('.', at + 2) > at + 2); })() && (
+          {answers.email.length > 0 && !isStepValid('2') && (
             <p style={{ color: "#ff6b6b", fontSize: "13px", margin: "8px 0 0" }}>
-              Please enter a valid email with @ and .com (e.g. you@gmail.com)
+              Please enter a valid email — e.g. you@gmail.com or you@company.com.my
             </p>
           )}
         </div>
@@ -676,39 +710,18 @@ export default function JoinPage() {
       );
     }
 
-    // Step 4a: industry radio (business_owner only)
+    // Step 4a: industry text input (business_owner only)
     if (step === '4a') {
       return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {INDUSTRY_OPTIONS.map((opt) => {
-            const selected = answers.industry === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => { setAnswers((p) => ({ ...p, industry: opt.value })); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: "12px",
-                  width: "100%", minHeight: "52px", padding: "14px 16px",
-                  borderRadius: "12px",
-                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
-                  border: selected ? "1.5px solid #E8760A" : `1px solid ${T.border}`,
-                  color: selected ? T.text : "rgba(237,237,237,0.7)",
-                  fontSize: "15px", fontFamily: "var(--font-geist-sans), sans-serif",
-                  fontWeight: selected ? 600 : 400, textAlign: "left",
-                  cursor: "pointer", transition: "all 0.15s ease", boxSizing: "border-box",
-                }}
-              >
-                <span style={{
-                  width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
-                  border: selected ? "5px solid #E8760A" : "2px solid rgba(255,255,255,0.2)",
-                  background: selected ? "#E8760A22" : "transparent",
-                  transition: "all 0.15s ease", boxSizing: "border-box",
-                }} />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+        <input
+          type="text"
+          autoFocus
+          value={answers.industry}
+          onChange={(e) => setAnswers((p) => ({ ...p, industry: e.target.value }))}
+          onKeyDown={(e) => e.key === "Enter" && isStepValid(step) && goNext()}
+          placeholder="e.g. Insurance, Manufacturing, SaaS..."
+          style={textInputStyle}
+        />
       );
     }
 
@@ -1366,13 +1379,13 @@ export default function JoinPage() {
             </button>
             <button
               onClick={goNext}
-              disabled={!valid}
+              disabled={!valid || submitting}
               style={{
                 flex: 1,
                 minHeight: "52px",
                 padding: "14px 24px",
                 borderRadius: "12px",
-                background: valid ? T.accent : "rgba(255,255,255,0.06)",
+                background: valid && !submitting ? T.accent : "rgba(255,255,255,0.06)",
                 border: "none",
                 color: valid ? "#fff" : "rgba(237,237,237,0.25)",
                 fontSize: "16px",

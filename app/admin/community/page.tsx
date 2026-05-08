@@ -106,6 +106,7 @@ export default async function CommunityAdminPage() {
     { count: totalMembers },
     { data: allMembersRaw },
     { data: recentMembersRaw },
+    { data: funnelData },
   ] = await Promise.all([
     supabase.from('community_members').select('*', { count: 'exact', head: true }),
     supabase
@@ -116,6 +117,10 @@ export default async function CommunityAdminPage() {
       .select('name, email, phone, role, team_size, created_at')
       .order('created_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('join_funnel_events')
+      .select('step, event_type')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
   const allMembers: MemberAnalytics[] = (allMembersRaw ?? []) as MemberAnalytics[]
@@ -188,6 +193,22 @@ export default async function CommunityAdminPage() {
   const maxTeam = Math.max(...teamRows.map(([, c]) => c), 1)
   const maxAi = topAiUseCases.length > 0 ? topAiUseCases[0][1] : 1
   const maxValue = topCommunityValues.length > 0 ? topCommunityValues[0][1] : 1
+
+  // Funnel stats
+  const FUNNEL_STEPS = ['1','2','3','4','4a','4b','5','6','7','8','9','10','complete']
+  const FUNNEL_LABELS: Record<string, string> = {
+    '1': 'Name', '2': 'Email', '3': 'WhatsApp', '4': 'Role',
+    '4a': 'Industry', '4b': 'B2B/B2C', '5': 'Team Size',
+    '6': 'AI Use Cases', '7': 'Pain Point', '8': 'Community Value',
+    '9': 'Notifications', '10': 'Social Link', 'complete': '✅ Submitted'
+  }
+  const funnelCounts: Record<string, number> = {}
+  for (const row of (funnelData ?? [])) {
+    if (row.event_type === 'enter' || row.event_type === 'complete') {
+      funnelCounts[row.step] = (funnelCounts[row.step] || 0) + 1
+    }
+  }
+  const maxFunnel = Math.max(...Object.values(funnelCounts), 1)
 
   // Styles
   const pageStyle = {
@@ -370,6 +391,39 @@ export default async function CommunityAdminPage() {
         <div style={cardStyle}>
           <BarRow label="Online" count={eventOnline} max={eventMax} />
           <BarRow label="Offline (KL)" count={eventOffline} max={eventMax} />
+        </div>
+      </div>
+
+      {/* Drop-off Funnel */}
+      <div style={{ ...sectionStyle, marginTop: '32px' }}>
+        <div style={{ marginBottom: 48 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#ededed', marginBottom: 4 }}>
+            Drop-off Funnel <span style={{ fontSize: 13, color: 'rgba(237,237,237,0.4)', fontWeight: 400 }}>(last 7 days)</span>
+          </h2>
+          <p style={{ color: 'rgba(237,237,237,0.4)', fontSize: 13, marginBottom: 16, marginTop: 0 }}>
+            Where people stop filling in the form
+          </p>
+          {FUNNEL_STEPS.map((s, i) => {
+            const count = funnelCounts[s] || 0
+            const prev = i > 0 ? (funnelCounts[FUNNEL_STEPS[i-1]] || 0) : count
+            const dropPct = prev > 0 && i > 0 ? Math.round(((prev - count) / prev) * 100) : 0
+            const pct = (count / maxFunnel) * 100
+            const isComplete = s === 'complete'
+            return (
+              <div key={s} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                  <span style={{ color: isComplete ? '#E8760A' : '#ededed' }}>{FUNNEL_LABELS[s]}</span>
+                  <span style={{ display: 'flex', gap: 12 }}>
+                    {dropPct > 0 && <span style={{ color: '#ff6b6b', fontSize: 12 }}>-{dropPct}% drop</span>}
+                    <span style={{ color: 'rgba(237,237,237,0.5)' }}>{count}</span>
+                  </span>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: isComplete ? '#E8760A' : 'rgba(232,118,10,0.45)', borderRadius: 4 }} />
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

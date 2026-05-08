@@ -28,7 +28,7 @@ type StepKey = '1'|'2'|'3'|'4'|'4a'|'4b'|'5'|'6'|'7'|'8'|'9'|'10'
 
 function getVisibleSteps(role: string): StepKey[] {
   const base: StepKey[] = ['1','2','3','4']
-  if (role === 'business_owner') {
+  if (role === 'business_owner' || role === 'freelancer') {
     base.push('4a', '4b')
   }
   base.push('5','6','7','8','9','10')

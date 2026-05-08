@@ -1,506 +1,300 @@
 import { redirect } from 'next/navigation'
 import { isAdmin } from '@/app/admin/actions'
 import { createAdminClient } from '@/lib/supabase-admin'
+import Link from 'next/link'
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-MY', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
+const S = {
+  bg: '#0a0a0a',
+  card: 'rgba(255,255,255,0.04)',
+  border: 'rgba(255,255,255,0.08)',
+  text: '#ededed',
+  muted: 'rgba(237,237,237,0.45)',
+  accent: '#E8760A',
+  amber: '#F5A623',
+  green: '#25D366',
+  red: '#ff6b6b',
+} as const
 
-function countBy(items: (string | null | undefined)[]): Record<string, number> {
-  const counts: Record<string, number> = {}
-  for (const item of items) {
-    if (item) counts[item] = (counts[item] ?? 0) + 1
-  }
-  return counts
-}
-
-function flattenArrayField(
-  rows: { [key: string]: unknown }[],
-  field: string,
-): string[] {
-  const result: string[] = []
-  for (const row of rows) {
-    const val = row[field]
-    if (Array.isArray(val)) {
-      for (const item of val) {
-        if (typeof item === 'string') result.push(item)
-      }
-    }
-  }
-  return result
-}
-
-function topN(counts: Record<string, number>, n: number): [string, number][] {
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
-}
-
-function BarRow({ label, count, max }: { label: string; count: number; max: number }) {
-  const pct = max > 0 ? Math.round((count / max) * 100) : 0
+function Bar({ pct, color = S.accent }: { pct: number; color?: string }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: 4,
-          fontSize: 13,
-          color: '#ededed',
-        }}
-      >
-        <span>{label}</span>
-        <span style={{ color: 'rgba(237,237,237,0.5)' }}>{count}</span>
-      </div>
-      <div
-        style={{
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: 4,
-          height: 8,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: '100%',
-            background: '#E8760A',
-            borderRadius: 4,
-            transition: 'width 0.6s ease',
-          }}
-        />
-      </div>
+    <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 8, overflow: 'hidden', flex: 1 }}>
+      <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
     </div>
   )
 }
 
-type MemberAnalytics = {
-  role: string | null
-  team_size: string | null
-  ai_use_cases: string[] | null
-  community_value: string[] | null
-  event_preference: string[] | null
-  created_at: string
+function StatCard({ label, value, sub, color = S.accent }: { label: string; value: string | number; sub?: string; color?: string }) {
+  return (
+    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px 24px' }}>
+      <p style={{ color: S.muted, fontSize: 12, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{label}</p>
+      <p style={{ color, fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 900, margin: 0, lineHeight: 1 }}>{value}</p>
+      {sub && <p style={{ color: S.muted, fontSize: 12, margin: '6px 0 0' }}>{sub}</p>}
+    </div>
+  )
 }
 
-type RecentMember = {
-  name: string | null
-  email: string | null
-  phone: string | null
-  role: string | null
-  team_size: string | null
-  created_at: string
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: '24px', marginBottom: 16 }}>
+      <h2 style={{ color: S.text, fontSize: 15, fontWeight: 700, margin: '0 0 20px', letterSpacing: '-0.2px' }}>{title}</h2>
+      {children}
+    </div>
+  )
 }
 
-export default async function CommunityAdminPage() {
+function BarRow({ label, count, max, color = S.accent }: { label: string; count: number; max: number; color?: string }) {
+  const pct = max > 0 ? (count / max) * 100 : 0
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
+        <span style={{ color: S.text }}>{label}</span>
+        <span style={{ color: S.muted }}>{count}</span>
+      </div>
+      <Bar pct={pct} color={color} />
+    </div>
+  )
+}
+
+const AI_LABELS: Record<string, string> = {
+  ops: 'Automate repetitive tasks',
+  social: 'Grow social media following',
+  b2b: 'Get targeted B2B leads',
+  dashboard: 'Cashflow dashboard',
+  invoicing: 'Invoicing & Payments',
+  cost: 'Cost savings',
+  kpi: 'Streamline team KPI',
+  others: 'Others',
+}
+
+const VALUE_LABELS: Record<string, string> = {
+  connections: 'Connections with top people',
+  knowledge: 'Industry knowledge',
+  venue: 'Venue',
+  sponsors: 'Sponsors',
+  volunteer: 'Volunteer time',
+  content: 'Content creation',
+  facilitator: 'Event facilitator',
+}
+
+const FUNNEL_STEPS = [
+  { key: '2', label: 'Email' },
+  { key: '3', label: 'WhatsApp' },
+  { key: '4', label: 'Role' },
+  { key: '5', label: 'Team Size' },
+  { key: '6', label: 'AI Use Cases' },
+  { key: '7', label: 'Pain Point' },
+  { key: '8', label: 'Community Value' },
+  { key: '9', label: 'Notifications' },
+  { key: '10', label: 'Social Link' },
+  { key: 'complete', label: '✅ Submitted' },
+]
+
+export default async function CommunityDashboard() {
   const ok = await isAdmin()
   if (!ok) redirect('/admin')
 
   const supabase = createAdminClient()
 
   const [
-    { count: totalMembers },
-    { data: allMembersRaw },
-    { data: recentMembersRaw },
-    { data: funnelData },
+    { data: members },
+    { data: recentMembers },
+    { data: funnelEvents },
   ] = await Promise.all([
-    supabase.from('community_members').select('*', { count: 'exact', head: true }),
-    supabase
-      .from('community_members')
-      .select('role, team_size, ai_use_cases, community_value, event_preference, created_at'),
-    supabase
-      .from('community_members')
-      .select('name, email, phone, role, team_size, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('join_funnel_events')
-      .select('step, event_type')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+    supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at'),
+    supabase.from('community_members').select('name, email, phone, role, industry, team_size, founding_member_number, created_at').order('created_at', { ascending: false }).limit(25),
+    supabase.from('join_funnel_events').select('step, event_type').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
-  const allMembers: MemberAnalytics[] = (allMembersRaw ?? []) as MemberAnalytics[]
-  const recentMembers: RecentMember[] = (recentMembersRaw ?? []) as RecentMember[]
+  const all = members ?? []
+  const total = all.length
+  const founding = all.filter(m => m.founding_member_number).length
+  const today = all.filter(m => new Date(m.created_at) > new Date(Date.now() - 86400000)).length
+  const thisWeek = all.filter(m => new Date(m.created_at) > new Date(Date.now() - 7 * 86400000)).length
 
-  // Derived stats
-  const now = new Date()
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const todayUTC = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  )
-
-  const thisWeek = allMembers.filter(
-    (m) => m.created_at && new Date(m.created_at) > sevenDaysAgo,
-  ).length
-
-  const today = allMembers.filter(
-    (m) => m.created_at && new Date(m.created_at) >= todayUTC,
-  ).length
-
-  const roleBreakdown = countBy(allMembers.map((m) => m.role))
-  const teamBreakdown = countBy(allMembers.map((m) => m.team_size))
-  const aiUseCaseCounts = countBy(
-    flattenArrayField(allMembers as unknown as { [key: string]: unknown }[], 'ai_use_cases'),
-  )
-  const communityValueCounts = countBy(
-    flattenArrayField(allMembers as unknown as { [key: string]: unknown }[], 'community_value'),
-  )
-  const eventPrefCounts = countBy(
-    flattenArrayField(allMembers as unknown as { [key: string]: unknown }[], 'event_preference'),
-  )
-
+  // Roles
+  const roles: Record<string, number> = {}
+  for (const m of all) if (m.role) roles[m.role] = (roles[m.role] ?? 0) + 1
+  const maxRole = Math.max(...Object.values(roles), 1)
   const roleLabels: Record<string, string> = {
-    student: 'Student',
-    business_owner: 'Business Owner',
-    developer: 'Developer',
-    freelancer: 'Freelancer',
-    marketing_agency: 'Marketing Agency',
+    business_owner: 'Business Owner', student: 'Student', developer: 'Developer',
+    freelancer: 'Freelancer', marketing_agency: 'Marketing Agency',
   }
 
-  const teamLabels: Record<string, string> = {
-    solo: 'Solo',
-    '1-5': '1–5',
-    '5-10': '5–10',
-    '10-30': '10–30',
-    '30-100': '30–100',
-    '100+': '100+',
-  }
+  // Team sizes
+  const teams: Record<string, number> = {}
+  for (const m of all) if (m.team_size) teams[m.team_size] = (teams[m.team_size] ?? 0) + 1
+  const teamOrder = ['solo', '1-5', '5-10', '10-30', '30-100', '100+']
+  const maxTeam = Math.max(...Object.values(teams), 1)
 
-  const roleRows: [string, number][] = [
-    'student',
-    'business_owner',
-    'developer',
-    'freelancer',
-    'marketing_agency',
-  ].map((key) => [roleLabels[key] ?? key, roleBreakdown[key] ?? 0])
+  // AI use cases
+  const aiCounts: Record<string, number> = {}
+  for (const m of all) for (const uc of m.ai_use_cases ?? []) aiCounts[uc] = (aiCounts[uc] ?? 0) + 1
+  const aiSorted = Object.entries(aiCounts).sort((a, b) => b[1] - a[1])
+  const maxAI = aiSorted[0]?.[1] ?? 1
 
-  const teamRows: [string, number][] = ['solo', '1-5', '5-10', '10-30', '30-100', '100+'].map(
-    (key) => [teamLabels[key] ?? key, teamBreakdown[key] ?? 0],
-  )
+  // Community value
+  const valCounts: Record<string, number> = {}
+  for (const m of all) for (const v of m.community_value ?? []) valCounts[v] = (valCounts[v] ?? 0) + 1
+  const valSorted = Object.entries(valCounts).sort((a, b) => b[1] - a[1])
+  const maxVal = valSorted[0]?.[1] ?? 1
 
-  const topAiUseCases = topN(aiUseCaseCounts, 7)
-  const topCommunityValues = topN(communityValueCounts, 7)
+  // Event prefs
+  const onlineCount = all.filter(m => m.event_preference?.includes('online')).length
+  const offlineCount = all.filter(m => m.event_preference?.includes('offline_kl')).length
 
-  const eventOnline = eventPrefCounts['online'] ?? 0
-  const eventOffline = eventPrefCounts['offline_kl'] ?? eventPrefCounts['offline'] ?? 0
-  const eventMax = Math.max(eventOnline, eventOffline, 1)
-
-  const maxRole = Math.max(...roleRows.map(([, c]) => c), 1)
-  const maxTeam = Math.max(...teamRows.map(([, c]) => c), 1)
-  const maxAi = topAiUseCases.length > 0 ? topAiUseCases[0][1] : 1
-  const maxValue = topCommunityValues.length > 0 ? topCommunityValues[0][1] : 1
-
-  // Funnel stats
-  const FUNNEL_STEPS = ['1','2','3','4','4a','4b','5','6','7','8','9','10','complete']
-  const FUNNEL_LABELS: Record<string, string> = {
-    '1': 'Name', '2': 'Email', '3': 'WhatsApp', '4': 'Role',
-    '4a': 'Industry', '4b': 'B2B/B2C', '5': 'Team Size',
-    '6': 'AI Use Cases', '7': 'Pain Point', '8': 'Community Value',
-    '9': 'Notifications', '10': 'Social Link', 'complete': '✅ Submitted'
-  }
+  // Funnel
   const funnelCounts: Record<string, number> = {}
-  for (const row of (funnelData ?? [])) {
-    if (row.event_type === 'enter' || row.event_type === 'complete') {
-      funnelCounts[row.step] = (funnelCounts[row.step] || 0) + 1
+  for (const e of funnelEvents ?? []) {
+    if (e.event_type === 'enter' || e.event_type === 'complete') {
+      funnelCounts[e.step] = (funnelCounts[e.step] ?? 0) + 1
     }
   }
-  const maxFunnel = Math.max(...Object.values(funnelCounts), 1)
+  const abandonedCounts: Record<string, number> = {}
+  for (const e of funnelEvents ?? []) {
+    if (e.event_type === 'abandoned') abandonedCounts[e.step] = (abandonedCounts[e.step] ?? 0) + 1
+  }
+  const funnelMax = Math.max(...Object.values(funnelCounts), 1)
+  const completionRate = funnelCounts['2'] > 0 ? Math.round((funnelCounts['complete'] ?? 0) / funnelCounts['2'] * 100) : 0
 
-  // Styles
-  const pageStyle = {
-    background: '#0a0a0a',
-    color: '#ededed',
+  const PAGE: React.CSSProperties = {
+    background: S.bg, color: S.text, minHeight: '100vh', padding: '32px 20px 80px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    minHeight: '100vh',
-    padding: '0 0 60px 0',
   }
-
-  const headerStyle = {
-    background: 'rgba(255,255,255,0.02)',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    padding: '16px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    flexWrap: 'wrap' as const,
-  }
-
-  const sectionStyle = {
-    padding: '32px 24px 0 24px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-  }
-
-  const sectionHeadingStyle = {
-    color: 'rgba(237,237,237,0.5)',
-    fontSize: '11px',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-    fontWeight: 600,
-    marginBottom: '16px',
-    marginTop: '0',
-  }
-
-  const cardStyle = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '10px',
-    padding: '24px',
-  }
-
-  const btnSecondaryStyle = {
-    padding: '8px 16px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px',
-    color: '#ededed',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    textDecoration: 'none',
-    display: 'inline-block',
-  }
-
-  const btnDisabledStyle = {
-    ...btnSecondaryStyle,
-    opacity: 0.4,
-    cursor: 'not-allowed',
-    pointerEvents: 'none' as const,
-  }
-
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-    fontSize: '13px',
-  }
-
-  const thStyle = {
-    padding: '10px 12px',
-    textAlign: 'left' as const,
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    color: 'rgba(237,237,237,0.5)',
-    fontWeight: 500,
-    fontSize: '11px',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    whiteSpace: 'nowrap' as const,
-  }
-
-  const tdStyle = {
-    padding: '10px 12px',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    color: '#ededed',
-    verticalAlign: 'top' as const,
-  }
+  const CONTAINER: React.CSSProperties = { maxWidth: 860, margin: '0 auto' }
+  const GRID2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }
 
   return (
-    <div style={pageStyle}>
-      {/* Header */}
-      <header style={headerStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a
-            href="/admin/responses"
-            style={{
-              color: 'rgba(237,237,237,0.5)',
-              fontSize: '13px',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            ← Back to Admin
-          </a>
-          <h1 style={{ color: '#ededed', fontSize: '16px', fontWeight: 600, margin: 0 }}>
-            Community Analytics
-          </h1>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={btnDisabledStyle}>Export CSV</span>
-        </div>
-      </header>
+    <div style={PAGE}>
+      <div style={CONTAINER}>
 
-      {/* Summary */}
-      <div style={sectionStyle}>
-        <p style={{ color: 'rgba(237,237,237,0.5)', fontSize: '14px', margin: '0 0 24px 0' }}>
-          <span style={{ color: '#ededed', fontWeight: 600, fontSize: '28px' }}>
-            {totalMembers ?? 0}
-          </span>{' '}
-          total members &middot;{' '}
-          <span style={{ color: '#E8760A', fontWeight: 600 }}>{thisWeek}</span> this week &middot;{' '}
-          <span style={{ color: '#E8760A', fontWeight: 600 }}>{today}</span> today
-        </p>
-      </div>
-
-      {/* Member Roles */}
-      <div style={{ ...sectionStyle, marginTop: '8px' }}>
-        <p style={sectionHeadingStyle}>Member Roles</p>
-        <div style={cardStyle}>
-          {roleRows.map(([label, count]) => (
-            <BarRow key={label} label={label} count={count} max={maxRole} />
-          ))}
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <div>
+            <p style={{ color: S.muted, fontSize: 12, margin: '0 0 4px', letterSpacing: '1px', textTransform: 'uppercase' }}>Admin</p>
+            <h1 style={{ color: S.text, fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Claude Malaysia Dashboard</h1>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Link href="/admin/responses" style={{ color: S.muted, fontSize: 13, textDecoration: 'none', padding: '8px 14px', border: `1px solid ${S.border}`, borderRadius: 8 }}>Survey data →</Link>
+            <Link href="/admin/export" style={{ color: S.accent, fontSize: 13, textDecoration: 'none', padding: '8px 14px', border: `1px solid rgba(232,118,10,0.3)`, borderRadius: 8 }}>Export CSV</Link>
+          </div>
         </div>
-      </div>
 
-      {/* Team Size */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <p style={sectionHeadingStyle}>Team Size</p>
-        <div style={cardStyle}>
-          {teamRows.map(([label, count]) => (
-            <BarRow key={label} label={label} count={count} max={maxTeam} />
-          ))}
+        {/* Hero stats */}
+        <div style={GRID2}>
+          <StatCard label="Total Members" value={total} sub={`${thisWeek} this week`} />
+          <StatCard label="Founding Members" value={founding} sub={`${164 - founding} spots left`} color={S.amber} />
+          <StatCard label="Today" value={today} sub="new signups" color={S.green} />
+          <StatCard label="Completion Rate" value={`${completionRate}%`} sub="start → submit" color={completionRate >= 70 ? S.green : S.red} />
         </div>
-      </div>
 
-      {/* AI Interests */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <p style={sectionHeadingStyle}>Top AI Interests (what they want to explore)</p>
-        <div style={cardStyle}>
-          {topAiUseCases.length === 0 ? (
-            <p style={{ color: 'rgba(237,237,237,0.3)', fontSize: 13, margin: 0 }}>No data yet</p>
-          ) : (
-            topAiUseCases.map(([label, count]) => (
-              <BarRow key={label} label={label} count={count} max={maxAi} />
-            ))
-          )}
+        {/* Founding progress */}
+        <div style={{ background: `rgba(245,166,35,0.06)`, border: `1px solid rgba(245,166,35,0.2)`, borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ color: S.amber, fontWeight: 700, fontSize: 14 }}>⭐ Founding Member Spots — #2 to #165</span>
+            <span style={{ color: S.muted, fontSize: 13 }}>{founding} / 164 claimed</span>
+          </div>
+          <Bar pct={(founding / 164) * 100} color={S.amber} />
+          <p style={{ color: S.muted, fontSize: 12, margin: '8px 0 0' }}>{164 - founding} spots remaining · share claudemalaysia.com/foundingmember</p>
         </div>
-      </div>
 
-      {/* Community Value */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <p style={sectionHeadingStyle}>Community Value Providers</p>
-        <div style={cardStyle}>
-          {topCommunityValues.length === 0 ? (
-            <p style={{ color: 'rgba(237,237,237,0.3)', fontSize: 13, margin: 0 }}>No data yet</p>
-          ) : (
-            topCommunityValues.map(([label, count]) => (
-              <BarRow key={label} label={label} count={count} max={maxValue} />
-            ))
-          )}
+        {/* Two column layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 16, marginBottom: 16 }}>
+
+          {/* Roles */}
+          <Section title="👤 Member Roles">
+            {Object.entries(roleLabels).map(([key, label]) => (
+              <BarRow key={key} label={label} count={roles[key] ?? 0} max={maxRole} />
+            ))}
+          </Section>
+
+          {/* Team sizes */}
+          <Section title="👥 Team Sizes">
+            {teamOrder.map(key => (
+              <BarRow key={key} label={key === 'solo' ? 'Solo (just me)' : key} count={teams[key] ?? 0} max={maxTeam} color="rgba(232,118,10,0.6)" />
+            ))}
+          </Section>
+
+          {/* AI use cases */}
+          <Section title="🤖 What They Want AI to Help With (Top picks)">
+            {aiSorted.map(([key, count]) => (
+              <BarRow key={key} label={AI_LABELS[key] ?? key} count={count} max={maxAI} />
+            ))}
+          </Section>
+
+          {/* Community value */}
+          <Section title="🤝 What They Bring to the Community">
+            {valSorted.map(([key, count]) => (
+              <BarRow key={key} label={VALUE_LABELS[key] ?? key} count={count} max={maxVal} color="rgba(37,211,102,0.7)" />
+            ))}
+          </Section>
+
         </div>
-      </div>
 
-      {/* Event Preferences */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <p style={sectionHeadingStyle}>Event Preferences</p>
-        <div style={cardStyle}>
-          <BarRow label="Online" count={eventOnline} max={eventMax} />
-          <BarRow label="Offline (KL)" count={eventOffline} max={eventMax} />
-        </div>
-      </div>
-
-      {/* Drop-off Funnel */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <div style={{ marginBottom: 48 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#ededed', marginBottom: 4 }}>
-            Drop-off Funnel <span style={{ fontSize: 13, color: 'rgba(237,237,237,0.4)', fontWeight: 400 }}>(last 7 days)</span>
-          </h2>
-          <p style={{ color: 'rgba(237,237,237,0.4)', fontSize: 13, marginBottom: 16, marginTop: 0 }}>
-            Where people stop filling in the form
-          </p>
+        {/* Drop-off funnel */}
+        <Section title="📉 Drop-off Funnel (last 7 days)">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ color: S.muted, fontSize: 13 }}>{funnelCounts['2'] ?? 0} started → {funnelCounts['complete'] ?? 0} completed</span>
+            <span style={{ color: completionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{completionRate}% completion rate</span>
+          </div>
           {FUNNEL_STEPS.map((s, i) => {
-            const count = funnelCounts[s] || 0
-            const prev = i > 0 ? (funnelCounts[FUNNEL_STEPS[i-1]] || 0) : count
-            const dropPct = prev > 0 && i > 0 ? Math.round(((prev - count) / prev) * 100) : 0
-            const pct = (count / maxFunnel) * 100
-            const isComplete = s === 'complete'
+            const count = funnelCounts[s.key] ?? 0
+            const prev = i > 0 ? (funnelCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
+            const dropPct = prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
+            const abandoned = abandonedCounts[s.key] ?? 0
+            const isComplete = s.key === 'complete'
             return (
-              <div key={s} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                  <span style={{ color: isComplete ? '#E8760A' : '#ededed' }}>{FUNNEL_LABELS[s]}</span>
-                  <span style={{ display: 'flex', gap: 12 }}>
-                    {dropPct > 0 && <span style={{ color: '#ff6b6b', fontSize: 12 }}>-{dropPct}% drop</span>}
-                    <span style={{ color: 'rgba(237,237,237,0.5)' }}>{count}</span>
-                  </span>
+              <div key={s.key} style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 13 }}>
+                  <span style={{ color: isComplete ? S.accent : S.text }}>{s.label}</span>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    {abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
+                    {dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
+                    <span style={{ color: S.muted }}>{count}</span>
+                  </div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: isComplete ? '#E8760A' : 'rgba(232,118,10,0.45)', borderRadius: 4 }} />
-                </div>
+                <Bar pct={(count / funnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
               </div>
             )
           })}
-        </div>
-      </div>
+        </Section>
 
-      {/* Recent Members */}
-      <div style={{ ...sectionStyle, marginTop: '32px' }}>
-        <p style={sectionHeadingStyle}>
-          Recent Members{' '}
-          <span style={{ color: 'rgba(237,237,237,0.3)', fontWeight: 400 }}>
-            (last 20)
-          </span>
-        </p>
-        <div
-          style={{
-            overflowX: 'auto',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '10px',
-          }}
-        >
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>Role</th>
-                <th style={thStyle}>Team</th>
-                <th style={thStyle}>Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentMembers.map((member, i) => (
-                <tr key={i}>
-                  <td style={tdStyle}>
-                    <div>{member.name ?? '—'}</div>
-                    {member.email && (
-                      <div style={{ fontSize: 11, color: 'rgba(237,237,237,0.4)', marginTop: 2 }}>
-                        {member.email}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ ...tdStyle, color: 'rgba(237,237,237,0.7)' }}>
-                    {member.role
-                      ? member.role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-                      : '—'}
-                  </td>
-                  <td style={{ ...tdStyle, color: 'rgba(237,237,237,0.7)' }}>
-                    {member.team_size ?? '—'}
-                  </td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      color: 'rgba(237,237,237,0.5)',
-                      fontSize: 12,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {member.created_at ? formatDate(member.created_at) : '—'}
-                  </td>
+        {/* Event prefs */}
+        <Section title="📅 Event Preferences">
+          <BarRow label="Online (Zoom)" count={onlineCount} max={Math.max(onlineCount, offlineCount, 1)} color="rgba(232,118,10,0.6)" />
+          <BarRow label="Offline (KL)" count={offlineCount} max={Math.max(onlineCount, offlineCount, 1)} color="rgba(37,211,102,0.6)" />
+        </Section>
+
+        {/* Recent members */}
+        <Section title={`🧑‍💻 Recent Members (last ${recentMembers?.length ?? 0})`}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+                  {['#', 'Name', 'Role', 'Industry', 'Team', 'Joined'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: S.muted, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {recentMembers.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      ...tdStyle,
-                      textAlign: 'center',
-                      color: 'rgba(237,237,237,0.3)',
-                      padding: '40px',
-                    }}
-                  >
-                    No members yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(recentMembers ?? []).map((m, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                    <td style={{ padding: '10px 12px', color: m.founding_member_number ? S.amber : S.muted, fontWeight: 700 }}>
+                      {m.founding_member_number ? `⭐ FM#${m.founding_member_number}` : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px', color: S.text, fontWeight: 600 }}>{m.name}</td>
+                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.role?.replace('_', ' ') ?? '—'}</td>
+                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.industry || '—'}</td>
+                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.team_size ?? '—'}</td>
+                    <td style={{ padding: '10px 12px', color: S.muted, whiteSpace: 'nowrap' }}>
+                      {new Date(m.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
       </div>
     </div>
   )

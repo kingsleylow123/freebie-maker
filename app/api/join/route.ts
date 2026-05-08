@@ -152,6 +152,40 @@ function fallbackRecommendations(
           "Most teams waste hours on manual data work. Build lightweight AI-powered internal tools — dashboards, report generators, data cleaners — in days instead of weeks.",
       },
     ],
+    freelancer: [
+      {
+        title: "Write Better Proposals in Half the Time",
+        description:
+          "Use AI to generate tailored project proposals from a short brief. Freelancers who use AI for proposals report winning 30% more clients without spending extra hours on pitch writing.",
+      },
+      {
+        title: "Build a Personal Brand That Attracts Clients",
+        description:
+          "Turn your completed projects into LinkedIn posts, case studies, and portfolio content automatically. Consistent content is the #1 way freelancers get inbound leads without cold outreach.",
+      },
+      {
+        title: "Automate Your Admin So You Only Do Client Work",
+        description:
+          "AI can handle invoicing reminders, client onboarding emails, and project update messages. Remove the 2-3 hours of admin per week and reinvest it into billable work.",
+      },
+    ],
+    marketing_agency: [
+      {
+        title: "10x Your Content Output Without Hiring",
+        description:
+          "Use AI to generate first drafts for blogs, ads, emails, and social posts from a single brief. Agencies using AI content workflows deliver 3x more work per account manager.",
+      },
+      {
+        title: "Build Client Reporting That Writes Itself",
+        description:
+          "Connect your analytics tools and let AI generate weekly client reports with insights and recommendations. Stop spending Friday afternoons writing reports manually.",
+      },
+      {
+        title: "Automate Lead Gen Campaigns for Your Clients",
+        description:
+          "Use AI to build personalised outreach sequences, ad copy variations, and follow-up messages for each client's target audience — without a separate copywriter for every account.",
+      },
+    ],
   };
   return defaults[role] ?? defaults["business_owner"];
 }

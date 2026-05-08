@@ -26,14 +26,14 @@ function buildGHLTags(body: {
 
   // AI use cases
   const aiMap: Record<string, string> = {
-    "Grow social media following": "cm:ai:social",
-    "B2B leads": "cm:ai:b2b",
-    "Invoicing & Payments": "cm:ai:invoicing",
-    "Streamline team KPI": "cm:ai:kpi",
-    "Automate repetitive tasks": "cm:ai:ops",
-    "Cost savings": "cm:ai:cost",
-    "Cashflow dashboard": "cm:ai:dashboard",
-    Others: "cm:ai:other",
+    social: "cm:ai:social",
+    b2b: "cm:ai:b2b",
+    invoicing: "cm:ai:invoicing",
+    kpi: "cm:ai:kpi",
+    ops: "cm:ai:ops",
+    cost: "cm:ai:cost",
+    dashboard: "cm:ai:dashboard",
+    others: "cm:ai:other",
   };
   for (const uc of body.ai_use_cases ?? []) {
     if (aiMap[uc]) tags.push(aiMap[uc]);

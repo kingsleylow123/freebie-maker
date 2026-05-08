@@ -136,6 +136,9 @@ const T = {
 export default function JoinPage() {
   const router = useRouter();
   const [step, setStep] = useState<StepKey | null>(null); // null = landing
+  const [alreadyJoined] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("claude_malaysia_joined") === "1"
+  );
   const [answers, setAnswers] = useState<JoinAnswers>({
     name: "",
     email: "",
@@ -231,6 +234,7 @@ export default function JoinPage() {
       }
       // Store phone for referral link on thank-you page
       sessionStorage.setItem("cm_phone", answers.phone.replace(/[^0-9]/g, ""));
+      localStorage.setItem("claude_malaysia_joined", "1");
       router.push(`/join/thank-you?n=${json.member_number}`);
     } catch {
       alert("Something went wrong. Please try again.");
@@ -302,6 +306,46 @@ export default function JoinPage() {
           <p style={{ color: T.muted, fontSize: "15px" }}>
             Building your AI action plan...
           </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ─── Already joined screen ───────────────────────────────────────────────────
+  if (alreadyJoined) {
+    return (
+      <main style={{ ...pageStyle, justifyContent: "center", alignItems: "center" }}>
+        <style>{ANIMATION_CSS}</style>
+        <div style={{ maxWidth: "480px", width: "100%", textAlign: "center", padding: "0 20px" }}>
+          <div style={{ fontSize: "52px", marginBottom: "16px" }}>🇲🇾</div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#ededed", margin: "0 0 8px" }}>
+            You&apos;re already a member!
+          </h1>
+          <p style={{ color: "rgba(237,237,237,0.5)", fontSize: "15px", margin: "0 0 28px" }}>
+            Thanks for joining Claude Malaysia.
+          </p>
+          <a
+            href="https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block", width: "100%", padding: "16px",
+              backgroundColor: "#25D366", color: "#000",
+              textDecoration: "none", fontSize: "16px", fontWeight: 700,
+              borderRadius: "12px", boxSizing: "border-box", marginBottom: "12px",
+            }}
+          >
+            Join the WhatsApp Group →
+          </a>
+          <button
+            onClick={() => { localStorage.removeItem("claude_malaysia_joined"); window.location.reload(); }}
+            style={{
+              background: "none", border: "none", color: "rgba(237,237,237,0.3)",
+              fontSize: "13px", cursor: "pointer", textDecoration: "underline",
+            }}
+          >
+            Not you? Fill in again
+          </button>
         </div>
       </main>
     );

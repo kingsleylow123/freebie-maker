@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { isAdmin } from '@/app/admin/actions'
 import { createAdminClient } from '@/lib/supabase-admin'
 import Link from 'next/link'
+import MembersTable from './MembersTable'
 
 const S = {
   bg: '#0a0a0a',
@@ -101,7 +102,7 @@ export default async function CommunityDashboard() {
     { data: funnelEvents },
   ] = await Promise.all([
     supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at'),
-    supabase.from('community_members').select('name, email, phone, role, industry, team_size, founding_member_number, created_at').order('created_at', { ascending: false }).limit(25),
+    supabase.from('community_members').select('member_number, founding_member_number, name, email, phone, role, industry, team_size, client_type, created_at').order('created_at', { ascending: false }),
     supabase.from('join_funnel_events').select('step, event_type').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
@@ -264,35 +265,9 @@ export default async function CommunityDashboard() {
           <BarRow label="Offline (KL)" count={offlineCount} max={Math.max(onlineCount, offlineCount, 1)} color="rgba(37,211,102,0.6)" />
         </Section>
 
-        {/* Recent members */}
-        <Section title={`🧑‍💻 Recent Members (last ${recentMembers?.length ?? 0})`}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${S.border}` }}>
-                  {['#', 'Name', 'Role', 'Industry', 'Team', 'Joined'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: S.muted, fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(recentMembers ?? []).map((m, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
-                    <td style={{ padding: '10px 12px', color: m.founding_member_number ? S.amber : S.muted, fontWeight: 700 }}>
-                      {m.founding_member_number ? `⭐ FM#${m.founding_member_number}` : '—'}
-                    </td>
-                    <td style={{ padding: '10px 12px', color: S.text, fontWeight: 600 }}>{m.name}</td>
-                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.role?.replace('_', ' ') ?? '—'}</td>
-                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.industry || '—'}</td>
-                    <td style={{ padding: '10px 12px', color: S.muted }}>{m.team_size ?? '—'}</td>
-                    <td style={{ padding: '10px 12px', color: S.muted, whiteSpace: 'nowrap' }}>
-                      {new Date(m.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* All members — sortable + filterable */}
+        <Section title={`🧑‍💻 All Members (${recentMembers?.length ?? 0})`}>
+          <MembersTable members={(recentMembers ?? []) as Parameters<typeof MembersTable>[0]['members']} />
         </Section>
 
         {/* Top 5 Insights */}

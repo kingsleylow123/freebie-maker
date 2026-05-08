@@ -174,6 +174,8 @@ export default function JoinPage() {
           JSON.stringify(json.recommendations)
         );
       }
+      // Store phone for referral link on thank-you page
+      sessionStorage.setItem("cm_phone", answers.phone.replace(/[^0-9]/g, ""));
       router.push(`/join/thank-you?n=${json.member_number}`);
     } catch {
       alert("Something went wrong. Please try again.");

@@ -46,9 +46,13 @@ export default function JoinThankYouPage() {
     } catch { return [] }
   })
 
-  const shareMsg = memberNumber
-    ? `I just joined Claude Malaysia (Malaysia) — member #${memberNumber} of the AI community for Malaysians building with AI. Join here → https://claudemalaysia.com/join?ref=member_${memberNumber}`
-    : `I just joined Claude Malaysia (Malaysia) — the AI community for Malaysians building with AI. Join here → https://claudemalaysia.com/join?ref=share`
+  const [phone] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    return sessionStorage.getItem('cm_phone') ?? ''
+  })
+
+  const refParam = phone || (memberNumber ? `member_${memberNumber}` : 'share')
+  const shareMsg = `I just joined Claude Malaysia (Malaysia) — member #${memberNumber ?? '?'} of the AI community for Malaysians building with AI. Join here → https://claudemalaysia.com/join?ref=${refParam}`
 
   const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`
 

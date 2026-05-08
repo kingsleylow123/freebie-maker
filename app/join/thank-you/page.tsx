@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const ANIMATION_CSS = `
 @keyframes fadeUp {
@@ -32,24 +32,21 @@ function animated(delay: number, extra?: React.CSSProperties): React.CSSProperti
 }
 
 export default function JoinThankYouPage() {
-  const [memberNumber] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null
-    const n = parseInt(new URLSearchParams(window.location.search).get('n') ?? '0', 10)
-    return n > 0 ? n : null
-  })
+  const [memberNumber, setMemberNumber] = useState<number | null>(null)
+  const [recommendations, setRecommendations] = useState<Array<{ title: string; description: string }>>([])
+  const [phone, setPhone] = useState<string>('')
 
-  const [recommendations] = useState<Array<{ title: string; description: string }>>(() => {
-    if (typeof window === 'undefined') return []
+  useEffect(() => {
+    const n = parseInt(new URLSearchParams(window.location.search).get('n') ?? '0', 10)
+    if (n > 0) setMemberNumber(n)
+
     try {
       const stored = sessionStorage.getItem('cm_recommendations')
-      return stored ? JSON.parse(stored) : []
-    } catch { return [] }
-  })
+      if (stored) setRecommendations(JSON.parse(stored))
+    } catch {}
 
-  const [phone] = useState<string>(() => {
-    if (typeof window === 'undefined') return ''
-    return sessionStorage.getItem('cm_phone') ?? ''
-  })
+    setPhone(sessionStorage.getItem('cm_phone') ?? '')
+  }, [])
 
   const refParam = phone || (memberNumber ? `member_${memberNumber}` : 'share')
   const shareMsg = `I just joined Claude Malaysia (Malaysia) — member #${memberNumber ?? '?'} of the AI community for Malaysians building with AI. Join here → https://claudemalaysia.com/join?ref=${refParam}`

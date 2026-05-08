@@ -29,6 +29,8 @@ function buildGHLTags(body: {
   const aiMap: Record<string, string> = {
     social: "cm:ai:social",
     b2b: "cm:ai:b2b",
+    b2b_clients: "cm:ai:b2b",
+    b2c_customers: "cm:ai:b2c",
     invoicing: "cm:ai:invoicing",
     kpi: "cm:ai:kpi",
     ops: "cm:ai:ops",

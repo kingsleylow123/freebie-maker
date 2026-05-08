@@ -76,7 +76,8 @@ const TEAM_SIZE_OPTIONS = [
 
 const AI_USE_CASE_OPTIONS = [
   { value: "social", label: "Grow a following on social media" },
-  { value: "b2b", label: "Getting targeted B2B leads" },
+  { value: "b2b_clients", label: "Get more B2B clients (businesses, agencies, corporate)" },
+  { value: "b2c_customers", label: "Get more B2C customers (consumers, retail, direct-to-public)" },
   { value: "invoicing", label: "Invoicing, Payment & Receipts" },
   { value: "kpi", label: "Streamline team KPI" },
   { value: "ops", label: "Automate repetitive tasks & operations" },

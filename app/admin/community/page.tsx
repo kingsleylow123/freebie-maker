@@ -59,7 +59,9 @@ function BarRow({ label, count, max, color = S.accent }: { label: string; count:
 const AI_LABELS: Record<string, string> = {
   ops: 'Automate repetitive tasks',
   social: 'Grow social media following',
-  b2b: 'Get targeted B2B leads',
+  b2b: 'Get targeted B2B leads (legacy)',
+  b2b_clients: 'Get more B2B clients',
+  b2c_customers: 'Get more B2C customers',
   dashboard: 'Cashflow dashboard',
   invoicing: 'Invoicing & Payments',
   cost: 'Cost savings',

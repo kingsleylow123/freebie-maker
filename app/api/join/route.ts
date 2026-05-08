@@ -233,10 +233,24 @@ export async function POST(req: NextRequest) {
       user_agent: body.user_agent ?? null,
     };
 
+    // Assign founding member number if applicable (spots #2–#165)
+    let founding_member_number: number | null = null;
+    if (body.referrer === 'foundingmember') {
+      const supabaseCheck = createAdminClient();
+      const { count: takenCount } = await supabaseCheck
+        .from('community_members')
+        .select('*', { count: 'exact', head: true })
+        .not('founding_member_number', 'is', null);
+      const taken = takenCount ?? 0;
+      if (taken < 164) {
+        founding_member_number = taken + 2; // starts at 2
+      }
+    }
+
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("community_members")
-      .insert(row)
+      .insert({ ...row, founding_member_number })
       .select("member_number")
       .single();
 
@@ -275,7 +289,7 @@ export async function POST(req: NextRequest) {
     // Generate AI recommendations
     const recommendations = await generateRecommendations(body);
 
-    return NextResponse.json({ member_number, recommendations });
+    return NextResponse.json({ member_number, founding_member_number, recommendations });
   } catch (err) {
     console.error("Join submission error:", err);
     return NextResponse.json({ error: "Submission failed" }, { status: 500 });

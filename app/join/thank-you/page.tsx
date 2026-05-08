@@ -35,6 +35,7 @@ export default function JoinThankYouPage() {
   const [memberNumber, setMemberNumber] = useState<number | null>(null)
   const [recommendations, setRecommendations] = useState<Array<{ title: string; description: string }>>([])
   const [phone, setPhone] = useState<string>('')
+  const [foundingNumber, setFoundingNumber] = useState<number | null>(null)
 
   useEffect(() => {
     const n = parseInt(new URLSearchParams(window.location.search).get('n') ?? '0', 10)
@@ -46,6 +47,9 @@ export default function JoinThankYouPage() {
     } catch {}
 
     setPhone(sessionStorage.getItem('cm_phone') ?? '')
+
+    const fm = sessionStorage.getItem('cm_founding_number')
+    if (fm) setFoundingNumber(parseInt(fm))
   }, [])
 
   const refParam = phone || (memberNumber ? `member_${memberNumber}` : 'share')
@@ -106,8 +110,10 @@ export default function JoinThankYouPage() {
 
         {/* Shareable member card */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(232,118,10,0.10) 0%, rgba(0,0,0,0) 80%)',
-          border: '1px solid rgba(232,118,10,0.4)',
+          background: foundingNumber
+            ? 'linear-gradient(135deg, rgba(245,166,35,0.12) 0%, rgba(0,0,0,0) 80%)'
+            : 'linear-gradient(135deg, rgba(232,118,10,0.10) 0%, rgba(0,0,0,0) 80%)',
+          border: foundingNumber ? '1px solid rgba(245,166,35,0.5)' : '1px solid rgba(232,118,10,0.4)',
           borderRadius: '20px',
           padding: '28px 24px 24px',
           textAlign: 'center',
@@ -118,12 +124,12 @@ export default function JoinThankYouPage() {
           <p style={{
             fontSize: '11px',
             letterSpacing: '3px',
-            color: 'rgba(232,118,10,0.7)',
+            color: foundingNumber ? 'rgba(245,166,35,0.8)' : 'rgba(232,118,10,0.7)',
             textTransform: 'uppercase',
-            margin: '0 0 12px',
+            margin: '0 0 6px',
             fontWeight: 600,
           }}>
-            Claude Malaysia
+            {foundingNumber ? '⭐ Founding Member' : 'Claude Malaysia'}
           </p>
           <p style={{
             fontSize: '13px',
@@ -136,13 +142,18 @@ export default function JoinThankYouPage() {
           <div style={{
             fontSize: 'clamp(44px, 11vw, 68px)',
             fontWeight: 900,
-            color: '#E8760A',
+            color: foundingNumber ? '#F5A623' : '#E8760A',
             lineHeight: 1.05,
             marginBottom: '10px',
             letterSpacing: '-1px',
           }}>
-            Member #{memberNumber ?? '—'}
+            {foundingNumber ? `#${foundingNumber}` : `Member #${memberNumber ?? '—'}`}
           </div>
+          {foundingNumber && (
+            <p style={{ fontSize: '12px', color: 'rgba(245,166,35,0.5)', margin: '0 0 6px' }}>
+              of the first 165 founding members
+            </p>
+          )}
           <p style={{
             fontSize: '12px',
             color: 'rgba(237,237,237,0.3)',

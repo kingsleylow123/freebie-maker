@@ -270,6 +270,9 @@ export default function JoinPage() {
       }
       // Store phone for referral link on thank-you page
       sessionStorage.setItem("cm_phone", answers.phone.replace(/[^0-9]/g, ""));
+      if (json.founding_member_number) {
+        sessionStorage.setItem("cm_founding_number", String(json.founding_member_number));
+      }
       localStorage.setItem("claude_malaysia_joined", "1");
       track('complete', 'complete')
       router.push(`/join/thank-you?n=${json.member_number}`);

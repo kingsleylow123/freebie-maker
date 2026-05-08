@@ -249,6 +249,9 @@ export async function POST(req: NextRequest) {
       social_link: body.social_link ?? null,
       industry: body.industry ?? null,
       client_type: body.client_type ?? null,
+      city: body.city ?? null,
+      ai_level: body.ai_level ?? null,
+      heard_from: body.heard_from ?? null,
       referrer: body.referrer ?? null,
       user_agent: body.user_agent ?? null,
     };

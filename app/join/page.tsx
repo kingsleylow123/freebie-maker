@@ -24,16 +24,43 @@ const ANIMATION_CSS = `
 `;
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
-type StepKey = '1'|'2'|'3'|'4'|'4a'|'4b'|'5'|'6'|'7'|'8'|'9'|'10'
+type StepKey = '1'|'2'|'3'|'city'|'4'|'ai_level'|'4a'|'4b'|'5'|'6'|'7'|'8'|'9'|'10'|'source'
 
 function getVisibleSteps(role: string): StepKey[] {
-  const base: StepKey[] = ['1','2','3','4']
+  const base: StepKey[] = ['1','2','3','city','4','ai_level']
   if (role === 'business_owner' || role === 'freelancer') {
     base.push('4a', '4b')
   }
-  base.push('5','6','7','8','9','10')
+  base.push('5','6','7','8','9','10','source')
   return base
 }
+
+const CITY_OPTIONS = [
+  { value: 'kl', label: 'Kuala Lumpur' },
+  { value: 'selangor', label: 'Selangor' },
+  { value: 'penang', label: 'Penang' },
+  { value: 'johor', label: 'Johor Bahru' },
+  { value: 'sabah_sarawak', label: 'Sabah / Sarawak' },
+  { value: 'others_city', label: 'Others' },
+]
+
+const AI_LEVEL_OPTIONS = [
+  { value: 'never', label: '🔰 Never used Claude yet' },
+  { value: 'free', label: '🆓 Free plan (claude.ai)' },
+  { value: 'pro', label: '⚡ Pro Plan' },
+  { value: 'max', label: '🚀 Max Plan' },
+  { value: 'app', label: '📱 Claude App (mobile)' },
+  { value: 'code', label: '💻 Claude Code / Cowork' },
+]
+
+const HEARD_FROM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram / TikTok' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'friend', label: 'Friend / Colleague' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'google', label: 'Google / Search' },
+  { value: 'others_source', label: 'Others' },
+]
 
 const INDUSTRY_OPTIONS = [
   { value: 'manufacturing', label: 'Manufacturing' },
@@ -114,7 +141,9 @@ interface JoinAnswers {
   name: string;
   email: string;
   phone: string;
+  city: string;
   role: string;
+  ai_level: string;
   industry: string;
   client_type: string;
   team_size: string;
@@ -125,6 +154,7 @@ interface JoinAnswers {
   event_preference: string[];
   social_link: string;
   social_platform: string;
+  heard_from: string;
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -156,7 +186,9 @@ export default function JoinPage() {
     name: "",
     email: "",
     phone: "",
+    city: "",
     role: "",
+    ai_level: "",
     industry: "",
     client_type: "",
     team_size: "",
@@ -167,6 +199,7 @@ export default function JoinPage() {
     event_preference: [],
     social_link: "",
     social_platform: "",
+    heard_from: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
@@ -220,11 +253,12 @@ export default function JoinPage() {
   // ─── Validation ──────────────────────────────────────────────────────────────
   function isStepValid(s: StepKey | null): boolean {
     if (!s) return false
-    if (s === '10') return answers.social_platform ? answers.social_link.trim().length > 0 : true
     if (s === '1') return answers.name.trim().length > 0
     if (s === '2') { const e = answers.email.trim(); const at = e.indexOf('@'); return at > 0 && (e.includes('.com') || e.includes('.my') || e.includes('.net') || e.includes('.io') || e.includes('.org') || e.includes('.co')) }
     if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length===10||d.length===11 }
+    if (s === 'city') return answers.city.length > 0
     if (s === '4') return answers.role.length > 0
+    if (s === 'ai_level') return answers.ai_level.length > 0
     if (s === '4a') return answers.industry.length > 0
     if (s === '4b') return answers.client_type.length > 0
     if (s === '5') return answers.team_size.length > 0
@@ -232,6 +266,8 @@ export default function JoinPage() {
     if (s === '7') return answers.pain_point.trim().length > 0
     if (s === '8') return answers.community_value.length > 0
     if (s === '9') return answers.event_preference.length > 0
+    if (s === '10') return answers.social_platform.length > 0 && answers.social_link.trim().length > 0
+    if (s === 'source') return answers.heard_from.length > 0
     return false
   }
 
@@ -573,7 +609,9 @@ export default function JoinPage() {
       case '1': return "What's your name?";
       case '2': return "What's your email address?";
       case '3': return "What's your WhatsApp number?";
+      case 'city': return "Which city are you based in?";
       case '4': return "What's your role?";
+      case 'ai_level': return "Which Claude plan do you use?";
       case '4a': return "What industry are you in?";
       case '4b': return "Who are your main clients?";
       case '5': return "How big is your team?";
@@ -582,6 +620,7 @@ export default function JoinPage() {
       case '8': return "What value can you bring to the Claude Malaysia community?";
       case '9': return "Notify me about:";
       case '10': return "Your social media";
+      case 'source': return "How did you hear about Claude Malaysia?";
       default: return "";
     }
   }
@@ -661,6 +700,63 @@ export default function JoinPage() {
       );
     }
 
+    // City step: radio buttons with auto-advance
+    if (step === 'city') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {CITY_OPTIONS.map((opt) => {
+            const selected = answers.city === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setAnswers((p) => ({ ...p, city: opt.value }))
+                  setTimeout(() => goNext(), 300)
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  minHeight: "56px",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected
+                    ? "1.5px solid #E8760A"
+                    : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px",
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: selected
+                      ? "5px solid #E8760A"
+                      : "2px solid rgba(255,255,255,0.2)",
+                    flexShrink: 0,
+                    background: selected ? "#E8760A22" : "transparent",
+                    transition: "all 0.15s ease",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     // Step 4: role radio
     if (step === '4') {
       return (
@@ -670,7 +766,67 @@ export default function JoinPage() {
             return (
               <button
                 key={opt.value}
-                onClick={() => setAnswers((p) => ({ ...p, role: opt.value }))}
+                onClick={() => {
+                  setAnswers((p) => ({ ...p, role: opt.value }))
+                  setTimeout(() => goNext(), 300)
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  minHeight: "56px",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected
+                    ? "1.5px solid #E8760A"
+                    : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px",
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: selected
+                      ? "5px solid #E8760A"
+                      : "2px solid rgba(255,255,255,0.2)",
+                    flexShrink: 0,
+                    background: selected ? "#E8760A22" : "transparent",
+                    transition: "all 0.15s ease",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // AI level step: radio buttons with auto-advance
+    if (step === 'ai_level') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {AI_LEVEL_OPTIONS.map((opt) => {
+            const selected = answers.ai_level === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setAnswers((p) => ({ ...p, ai_level: opt.value }))
+                  setTimeout(() => goNext(), 300)
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -739,7 +895,10 @@ export default function JoinPage() {
             return (
               <button
                 key={opt.value}
-                onClick={() => setAnswers((p) => ({ ...p, client_type: opt.value }))}
+                onClick={() => {
+                  setAnswers((p) => ({ ...p, client_type: opt.value }))
+                  setTimeout(() => goNext(), 300)
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -793,9 +952,10 @@ export default function JoinPage() {
             return (
               <button
                 key={opt.value}
-                onClick={() =>
+                onClick={() => {
                   setAnswers((p) => ({ ...p, team_size: opt.value }))
-                }
+                  setTimeout(() => goNext(), 300)
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1239,6 +1399,63 @@ export default function JoinPage() {
       );
     }
 
+    // Source step: radio buttons with auto-advance
+    if (step === 'source') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {HEARD_FROM_OPTIONS.map((opt) => {
+            const selected = answers.heard_from === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setAnswers((p) => ({ ...p, heard_from: opt.value }))
+                  setTimeout(() => goNext(), 300)
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%",
+                  minHeight: "56px",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected
+                    ? "1.5px solid #E8760A"
+                    : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px",
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: selected
+                      ? "5px solid #E8760A"
+                      : "2px solid rgba(255,255,255,0.2)",
+                    flexShrink: 0,
+                    background: selected ? "#E8760A22" : "transparent",
+                    transition: "all 0.15s ease",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     return null;
   }
 
@@ -1338,11 +1555,16 @@ export default function JoinPage() {
             {"We'll tailor your AI recommendations based on this"}
           </p>
         )}
+        {step === 'ai_level' && (
+          <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
+            Helps us tailor workshops to your level
+          </p>
+        )}
 
-        {/* Optional note for step 10 */}
+        {/* Required note for step 10 */}
         {step === '10' && (
           <p style={{ fontSize: "13px", color: T.muted, margin: "-16px 0 0" }}>
-            Optional — which platform are you most active on?
+            Share your most active platform
           </p>
         )}
 
@@ -1404,24 +1626,6 @@ export default function JoinPage() {
               {isLastStep ? "Submit →" : "Continue →"}
             </button>
           </div>
-          {/* Step 10 skip link */}
-          {step === '10' && (
-            <button
-              onClick={goNext}
-              style={{
-                background: "none",
-                border: "none",
-                color: "rgba(237,237,237,0.4)",
-                fontSize: "14px",
-                cursor: "pointer",
-                padding: "4px 0",
-                fontFamily: "var(--font-geist-sans), sans-serif",
-                textAlign: "center",
-              }}
-            >
-              Skip →
-            </button>
-          )}
         </div>
       </div>
     </main>

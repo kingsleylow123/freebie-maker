@@ -295,6 +295,114 @@ export default async function CommunityDashboard() {
           </div>
         </Section>
 
+        {/* Top 5 Insights */}
+        {(() => {
+          const topRole = Object.entries(roles).sort((a,b) => b[1]-a[1])[0]
+          const topAI = aiSorted[0]
+          const smallTeamPct = Math.round(((teams['solo']??0) + (teams['1-5']??0)) / Math.max(total,1) * 100)
+          const agencyCount = (roles['marketing_agency']??0) + (roles['freelancer']??0)
+          const insights: {icon:string; title:string; body:string}[] = [
+            {
+              icon: '🏆',
+              title: `${topRole?.[0].replace('_',' ')} is your biggest segment (${topRole?.[1]} of ${total})`,
+              body: `At ${Math.round((topRole?.[1]??0)/Math.max(total,1)*100)}% of members, this is your core audience. Every workshop, event, and offer should speak to them first.`,
+            },
+            {
+              icon: '🤖',
+              title: `"${AI_LABELS[topAI?.[0] ?? ''] || topAI?.[0]}" is the #1 AI need (${topAI?.[1]} picks)`,
+              body: `More than social media or lead gen — your community wants operational efficiency. A workshop on "AI for Business Operations" would fill fast.`,
+            },
+            {
+              icon: '👤',
+              title: `${smallTeamPct}% are solo or small teams (≤5 people)`,
+              body: `These members can't afford to hire — they need AI to do the work of 3 people. High willingness to pay for done-for-you setups and templates.`,
+            },
+            {
+              icon: '📣',
+              title: `${agencyCount} marketers & agencies — a high-value niche`,
+              body: `Marketing agencies + freelancers make up ${Math.round(agencyCount/Math.max(total,1)*100)}% of members. They bill clients monthly, meaning any AI tool that saves them time = direct profit. Strong upsell segment.`,
+            },
+            {
+              icon: '📈',
+              title: `${completionRate}% form completion — high intent audience`,
+              body: `A 12-step form with 75%+ completion means these aren't casual sign-ups. They invested time. They're motivated. Expect high event attendance and paid offer conversion.`,
+            },
+          ]
+          return (
+            <Section title="💡 Top 5 Insights">
+              {insights.map((ins, i) => (
+                <div key={i} style={{
+                  background: 'rgba(232,118,10,0.05)',
+                  border: '1px solid rgba(232,118,10,0.15)',
+                  borderRadius: 12, padding: '16px 18px',
+                  marginBottom: i < 4 ? 10 : 0,
+                }}>
+                  <p style={{ color: S.text, fontWeight: 700, fontSize: 14, margin: '0 0 6px' }}>
+                    {ins.icon} {ins.title}
+                  </p>
+                  <p style={{ color: S.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>{ins.body}</p>
+                </div>
+              ))}
+            </Section>
+          )
+        })()}
+
+        {/* Monetisation Recommendations */}
+        <Section title="💰 Monetisation Recommendations">
+          {[
+            {
+              tag: 'HIGHEST PRIORITY',
+              tagColor: S.accent,
+              title: 'AI for Business Operations — Paid Workshop (RM 197–397)',
+              body: '"Automate repetitive tasks" is the #1 AI interest with 21 picks. Run a 2-hour paid Zoom workshop showing exactly how to automate ops, reporting, and client work with AI. Sell to your 75%+ solo/small team segment first.',
+            },
+            {
+              tag: 'QUICK WIN',
+              tagColor: S.green,
+              title: 'Agency AI Accelerator — Group Programme (RM 997–1,997)',
+              body: `You have ${(roles['marketing_agency']??0) + (roles['freelancer']??0)} marketers/agencies/freelancers. These people charge clients monthly — an AI workflow that saves them 10 hours a week is easily worth RM 1K+. Run a 4-week cohort.`,
+            },
+            {
+              tag: 'RECURRING REVENUE',
+              tagColor: S.amber,
+              title: 'Claude Malaysia Pro — Monthly Membership (RM 47–97/mo)',
+              body: 'Monthly workshops (online + offline), AI tool reviews, templates, and a private members chat. With 165 founding members as a base, RM 67/mo = RM 11K MRR if 50% convert. Start with a founding member rate.',
+            },
+            {
+              tag: 'HIGH TICKET',
+              tagColor: '#a78bfa',
+              title: 'Done-For-You AI Setup — 1:1 or Small Group (RM 2,000–5,000)',
+              body: `${teams['solo']??0} solo operators can't afford staff but desperately need AI systems. Offer a "set it up for you" service: 1 day, audit their workflow, build their AI stack. Each client = 1 day's work.`,
+            },
+            {
+              tag: 'LONG TERM',
+              tagColor: S.muted,
+              title: 'B2B Lead Gen with AI — Masterclass (RM 297–497)',
+              body: '16 members flagged B2B leads as their top AI interest. Bundle a lead scraping + AI outreach masterclass. Partner with a B2B tool (Clay, Apollo, etc.) for affiliate revenue on top.',
+            },
+          ].map((rec, i) => (
+            <div key={i} style={{
+              background: S.card,
+              border: `1px solid ${S.border}`,
+              borderRadius: 12, padding: '18px 20px',
+              marginBottom: i < 4 ? 10 : 0,
+            }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '1.5px',
+                  color: rec.tagColor, border: `1px solid ${rec.tagColor}`,
+                  borderRadius: 4, padding: '2px 8px',
+                  background: `${rec.tagColor}18`,
+                }}>
+                  {rec.tag}
+                </span>
+              </div>
+              <p style={{ color: S.text, fontWeight: 700, fontSize: 14, margin: '0 0 6px' }}>{rec.title}</p>
+              <p style={{ color: S.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>{rec.body}</p>
+            </div>
+          ))}
+        </Section>
+
       </div>
     </div>
   )

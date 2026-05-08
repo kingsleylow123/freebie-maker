@@ -59,8 +59,9 @@ const CLIENT_TYPE_OPTIONS = [
 const ROLE_OPTIONS = [
   { value: "student", label: "Student" },
   { value: "business_owner", label: "Business Owner" },
+  { value: "employee", label: "Employee / Office Worker" },
   { value: "developer", label: "Developer" },
-  { value: "freelancer", label: "Freelancer (non-marketing)" },
+  { value: "freelancer", label: "Freelancer" },
   { value: "marketing_agency", label: "Marketing Agency" },
 ];
 

@@ -14,6 +14,7 @@ function buildGHLTags(body: {
   const roleMap: Record<string, string> = {
     student: "cm:student",
     business_owner: "cm:business_owner",
+    employee: "cm:employee",
     developer: "cm:developer",
     freelancer: "cm:freelancer",
     marketing_agency: "cm:marketing_agency",
@@ -150,6 +151,23 @@ function fallbackRecommendations(
         title: "Build Internal Tools Your Team Actually Uses",
         description:
           "Most teams waste hours on manual data work. Build lightweight AI-powered internal tools — dashboards, report generators, data cleaners — in days instead of weeks.",
+      },
+    ],
+    employee: [
+      {
+        title: "Automate the Repetitive Parts of Your Job",
+        description:
+          "Use AI to draft emails, summarise meeting notes, and generate reports in seconds. Employees who use AI for admin tasks save 5–8 hours a week — without needing to know how to code.",
+      },
+      {
+        title: "Make Your Work Stand Out with AI-Assisted Output",
+        description:
+          "Use Claude to improve your writing, presentations, and analysis. Delivering higher-quality work faster is the fastest way to get noticed at any company.",
+      },
+      {
+        title: "Stay Ahead by Learning AI Before Your Colleagues",
+        description:
+          "AI literacy is becoming the most in-demand workplace skill. Building it now — even 30 minutes a week — puts you in a different category when promotions and new roles open up.",
       },
     ],
     freelancer: [

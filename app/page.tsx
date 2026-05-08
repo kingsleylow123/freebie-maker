@@ -7,7 +7,7 @@ export default async function Home() {
   const headersList = await headers();
   const host = headersList.get("host") ?? "";
   if (host.includes("claudemalaysia.com")) {
-    redirect("/malaysia");
+    redirect("/join");
   }
   redirect("/generate");
 }

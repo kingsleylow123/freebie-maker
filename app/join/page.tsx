@@ -36,14 +36,17 @@ function getVisibleSteps(role: string): StepKey[] {
 }
 
 const INDUSTRY_OPTIONS = [
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'property', label: 'Property / Real Estate' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'saas', label: 'SaaS / Software' },
   { value: 'ecommerce', label: 'E-commerce' },
   { value: 'fnb', label: 'F&B' },
   { value: 'professional_services', label: 'Professional Services' },
   { value: 'education', label: 'Education' },
   { value: 'healthcare', label: 'Healthcare' },
-  { value: 'real_estate', label: 'Real Estate' },
   { value: 'finance', label: 'Finance' },
-  { value: 'tech', label: 'Tech / Software' },
+  { value: 'marketing', label: 'Marketing / Media' },
   { value: 'others', label: 'Others' },
 ]
 
@@ -184,7 +187,7 @@ export default function JoinPage() {
     if (!s) return false
     if (s === '10') return true  // optional
     if (s === '1') return answers.name.trim().length > 0
-    if (s === '2') { const e = answers.email.trim(); const at = e.indexOf('@'); return at > 0 && e.indexOf('.', at + 2) > at + 2 }
+    if (s === '2') { const e = answers.email.trim(); const at = e.indexOf('@'); return at > 0 && (e.includes('.com') || e.includes('.my') || e.includes('.net') || e.includes('.io') || e.includes('.org') || e.includes('.co')) }
     if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length===10||d.length===11 }
     if (s === '4') return answers.role.length > 0
     if (s === '4a') return answers.industry.length > 0
@@ -587,7 +590,7 @@ export default function JoinPage() {
           />
           {answers.email.length > 0 && (() => { const e = answers.email.trim(); const at = e.indexOf('@'); return !(at > 0 && e.indexOf('.', at + 2) > at + 2); })() && (
             <p style={{ color: "#ff6b6b", fontSize: "13px", margin: "8px 0 0" }}>
-              Please enter a valid email (e.g. you@gmail.com)
+              Please enter a valid email with @ and .com (e.g. you@gmail.com)
             </p>
           )}
         </div>
@@ -673,18 +676,39 @@ export default function JoinPage() {
       );
     }
 
-    // Step 4a: industry short answer (business_owner only)
+    // Step 4a: industry radio (business_owner only)
     if (step === '4a') {
       return (
-        <input
-          type="text"
-          autoFocus
-          value={answers.industry}
-          onChange={(e) => setAnswers((p) => ({ ...p, industry: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && isStepValid(step) && goNext()}
-          placeholder="e.g. Recruitment, Insurance, SaaS..."
-          style={textInputStyle}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {INDUSTRY_OPTIONS.map((opt) => {
+            const selected = answers.industry === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => { setAnswers((p) => ({ ...p, industry: opt.value })); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: "12px",
+                  width: "100%", minHeight: "52px", padding: "14px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected ? "1.5px solid #E8760A" : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px", fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400, textAlign: "left",
+                  cursor: "pointer", transition: "all 0.15s ease", boxSizing: "border-box",
+                }}
+              >
+                <span style={{
+                  width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
+                  border: selected ? "5px solid #E8760A" : "2px solid rgba(255,255,255,0.2)",
+                  background: selected ? "#E8760A22" : "transparent",
+                  transition: "all 0.15s ease", boxSizing: "border-box",
+                }} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       );
     }
 

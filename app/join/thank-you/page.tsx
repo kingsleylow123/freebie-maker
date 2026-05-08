@@ -91,6 +91,19 @@ export default function JoinThankYouPage() {
           Welcome to Claude Malaysia
         </p>
 
+        {/* Screenshot prompt */}
+        <p style={{
+          textAlign: 'center',
+          fontSize: '13px',
+          color: '#E8760A',
+          fontWeight: 600,
+          margin: '0 0 10px',
+          letterSpacing: '0.3px',
+          ...animated(150),
+        }}>
+          📸 Screenshot this — you&apos;ll only see it once!
+        </p>
+
         {/* Shareable member card */}
         <div style={{
           background: 'linear-gradient(135deg, rgba(232,118,10,0.10) 0%, rgba(0,0,0,0) 80%)',
@@ -238,6 +251,18 @@ export default function JoinThankYouPage() {
             Join Claude Malaysia WhatsApp →
           </a>
         </div>
+
+        {/* Intro CTA */}
+        <p style={{
+          textAlign: 'center',
+          fontSize: '14px',
+          color: 'rgba(237,237,237,0.6)',
+          margin: '12px 0 24px',
+          lineHeight: 1.5,
+          ...animated(recommendations.length > 0 ? 820 : 400),
+        }}>
+          👋 Now go make an intro in the group once you&apos;re in!
+        </p>
 
         {/* Share button */}
         <div style={{ textAlign: 'center', ...animated(recommendations.length > 0 ? 860 : 450) }}>

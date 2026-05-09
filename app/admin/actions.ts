@@ -25,7 +25,8 @@ export async function login(
     path: '/',
   })
 
-  redirect('/admin/responses')
+  const redirectTo = (formData.get('redirectTo') as string) || '/admin/responses'
+  redirect(redirectTo)
 }
 
 export async function logout() {

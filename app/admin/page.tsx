@@ -1,7 +1,17 @@
 'use client'
 
-import { useActionState } from 'react'
+import React, { useActionState } from 'react'
 import { login } from './actions'
+
+function FromField() {
+  const [from, setFrom] = React.useState('')
+  React.useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get('from') ?? ''
+    setFrom(f)
+  }, [])
+  if (!from) return null
+  return <input type="hidden" name="redirectTo" value={from} />
+}
 
 export default function AdminLoginPage() {
   const [state, formAction, pending] = useActionState(login, null)
@@ -31,6 +41,7 @@ export default function AdminLoginPage() {
           Admin Login
         </h1>
         <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <FromField />
           <input
             type="password"
             name="password"

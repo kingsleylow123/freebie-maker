@@ -182,6 +182,11 @@ export default function JoinPage() {
     sessionStorage.setItem('cm_session_id', id)
     return id
   })
+  const [ref] = useState(() =>
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('ref') ?? ''
+      : ''
+  )
   const [answers, setAnswers] = useState<JoinAnswers>({
     name: "",
     email: "",
@@ -210,7 +215,7 @@ export default function JoinPage() {
     fetch('/api/join/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, step: stepKey, event_type: eventType }),
+      body: JSON.stringify({ session_id: sessionId, step: stepKey, event_type: eventType, referrer: ref || null }),
     }).catch(() => {})
   }
 
@@ -221,6 +226,7 @@ export default function JoinPage() {
           session_id: sessionId,
           step: step ?? 'landing',
           event_type: 'abandoned',
+          referrer: ref || null,
         }))
       }
     }
@@ -274,10 +280,6 @@ export default function JoinPage() {
   // ─── Submission ──────────────────────────────────────────────────────────────
   async function handleSubmit() {
     setSubmitting(true);
-    const ref =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("ref") ?? ""
-        : "";
     try {
       const socialLinkCombined =
         answers.social_platform && answers.social_link

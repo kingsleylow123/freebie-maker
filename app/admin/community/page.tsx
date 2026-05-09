@@ -81,20 +81,23 @@ const VALUE_LABELS: Record<string, string> = {
 
 const FUNNEL_STEPS = [
   { key: '2', label: 'Email' },
+  { key: 'city', label: 'City' },
   { key: '3', label: 'WhatsApp' },
   { key: '4', label: 'Role' },
+  { key: 'ai_level', label: 'Claude Plan' },
   { key: '5', label: 'Team Size' },
   { key: '6', label: 'AI Use Cases' },
   { key: '7', label: 'Pain Point' },
   { key: '8', label: 'Community Value' },
   { key: '9', label: 'Notifications' },
   { key: '10', label: 'Social Link' },
+  { key: 'source', label: 'Heard From' },
   { key: 'complete', label: '✅ Submitted' },
 ]
 
 export default async function CommunityDashboard() {
   const ok = await isAdmin()
-  if (!ok) redirect('/admin')
+  if (!ok) redirect('/admin?from=/admin/community')
 
   const supabase = createAdminClient()
 
@@ -103,9 +106,9 @@ export default async function CommunityDashboard() {
     { data: recentMembers },
     { data: funnelEvents },
   ] = await Promise.all([
-    supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at'),
+    supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at, industry, city, ai_level, heard_from'),
     supabase.from('community_members').select('member_number, founding_member_number, name, email, phone, role, industry, team_size, client_type, created_at').order('created_at', { ascending: false }),
-    supabase.from('join_funnel_events').select('step, event_type').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+    supabase.from('join_funnel_events').select('step, event_type, referrer').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
   const all = members ?? []
@@ -145,19 +148,40 @@ export default async function CommunityDashboard() {
   const onlineCount = all.filter(m => m.event_preference?.includes('online')).length
   const offlineCount = all.filter(m => m.event_preference?.includes('offline_kl')).length
 
-  // Funnel
-  const funnelCounts: Record<string, number> = {}
-  for (const e of funnelEvents ?? []) {
-    if (e.event_type === 'enter' || e.event_type === 'complete') {
-      funnelCounts[e.step] = (funnelCounts[e.step] ?? 0) + 1
+  // Industry counts
+  const industryCounts: Record<string, number> = {}
+  for (const m of all) {
+    const ind = (m as any).industry
+    if (ind) {
+      const key = (ind as string).trim().toLowerCase()
+      if (key) industryCounts[key] = (industryCounts[key] ?? 0) + 1
     }
   }
-  const abandonedCounts: Record<string, number> = {}
-  for (const e of funnelEvents ?? []) {
-    if (e.event_type === 'abandoned') abandonedCounts[e.step] = (abandonedCounts[e.step] ?? 0) + 1
+  const industrySorted = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 12)
+  const maxIndustry = industrySorted[0]?.[1] ?? 1
+
+  // Funnel — split by referrer
+  const fmEvents = (funnelEvents ?? []).filter(e => (e as any).referrer === 'foundingmember')
+  const regEvents = (funnelEvents ?? []).filter(e => (e as any).referrer !== 'foundingmember')
+
+  function computeFunnel(events: typeof funnelEvents) {
+    const counts: Record<string, number> = {}
+    const abandoned: Record<string, number> = {}
+    for (const e of events ?? []) {
+      if (e.event_type === 'enter' || e.event_type === 'complete') counts[e.step] = (counts[e.step] ?? 0) + 1
+      if (e.event_type === 'abandoned') abandoned[e.step] = (abandoned[e.step] ?? 0) + 1
+    }
+    return { counts, abandoned }
   }
-  const funnelMax = Math.max(...Object.values(funnelCounts), 1)
-  const completionRate = funnelCounts['2'] > 0 ? Math.round((funnelCounts['complete'] ?? 0) / funnelCounts['2'] * 100) : 0
+
+  const { counts: fmCounts, abandoned: fmAbandoned } = computeFunnel(fmEvents)
+  const { counts: regCounts, abandoned: regAbandoned } = computeFunnel(regEvents)
+
+  const fmCompletionRate = (fmCounts['2'] ?? 0) > 0 ? Math.round((fmCounts['complete'] ?? 0) / fmCounts['2'] * 100) : 0
+  const regCompletionRate = (regCounts['2'] ?? 0) > 0 ? Math.round((regCounts['complete'] ?? 0) / regCounts['2'] * 100) : 0
+
+  const fmFunnelMax = Math.max(...Object.values(fmCounts), 1)
+  const regFunnelMax = Math.max(...Object.values(regCounts), 1)
 
   const PAGE: React.CSSProperties = {
     background: S.bg, color: S.text, minHeight: '100vh', padding: '32px 20px 80px',
@@ -187,7 +211,8 @@ export default async function CommunityDashboard() {
           <StatCard label="Total Members" value={total} sub={`${thisWeek} this week`} />
           <StatCard label="Founding Members" value={founding} sub={`${164 - founding} spots left`} color={S.amber} />
           <StatCard label="Today" value={today} sub="new signups" color={S.green} />
-          <StatCard label="Completion Rate" value={`${completionRate}%`} sub="start → submit" color={completionRate >= 70 ? S.green : S.red} />
+          <StatCard label="FM Completion" value={`${fmCompletionRate}%`} sub={`${fmCounts['complete'] ?? 0} FM submitted`} color={S.amber} />
+          <StatCard label="Regular Completion" value={`${regCompletionRate}%`} sub={`${regCounts['complete'] ?? 0} regular submitted`} color={regCompletionRate >= 70 ? S.green : S.red} />
         </div>
 
         {/* Founding progress */}
@@ -231,19 +256,29 @@ export default async function CommunityDashboard() {
             ))}
           </Section>
 
+          {/* Industries */}
+          <Section title="🏭 Industries">
+            {industrySorted.length === 0
+              ? <p style={{ color: S.muted, fontSize: 13 }}>No industry data yet</p>
+              : industrySorted.map(([key, count]) => (
+                  <BarRow key={key} label={key.charAt(0).toUpperCase() + key.slice(1)} count={count} max={maxIndustry} color="rgba(232,118,10,0.55)" />
+                ))
+            }
+          </Section>
+
         </div>
 
-        {/* Drop-off funnel */}
-        <Section title="📉 Drop-off Funnel (last 7 days)">
+        {/* FM Funnel */}
+        <Section title="📉 Founding Member Funnel (last 7 days)">
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ color: S.muted, fontSize: 13 }}>{funnelCounts['2'] ?? 0} started → {funnelCounts['complete'] ?? 0} completed</span>
-            <span style={{ color: completionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{completionRate}% completion rate</span>
+            <span style={{ color: S.muted, fontSize: 13 }}>{fmCounts['2'] ?? 0} started → {fmCounts['complete'] ?? 0} completed</span>
+            <span style={{ color: fmCompletionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{fmCompletionRate}% completion rate</span>
           </div>
           {FUNNEL_STEPS.map((s, i) => {
-            const count = funnelCounts[s.key] ?? 0
-            const prev = i > 0 ? (funnelCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
+            const count = fmCounts[s.key] ?? 0
+            const prev = i > 0 ? (fmCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
             const dropPct = prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
-            const abandoned = abandonedCounts[s.key] ?? 0
+            const abandoned = fmAbandoned[s.key] ?? 0
             const isComplete = s.key === 'complete'
             return (
               <div key={s.key} style={{ marginBottom: 12 }}>
@@ -255,7 +290,35 @@ export default async function CommunityDashboard() {
                     <span style={{ color: S.muted }}>{count}</span>
                   </div>
                 </div>
-                <Bar pct={(count / funnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
+                <Bar pct={(count / fmFunnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
+              </div>
+            )
+          })}
+        </Section>
+
+        {/* Regular Funnel */}
+        <Section title="📉 Regular /join Funnel (last 7 days)">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <span style={{ color: S.muted, fontSize: 13 }}>{regCounts['2'] ?? 0} started → {regCounts['complete'] ?? 0} completed</span>
+            <span style={{ color: regCompletionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{regCompletionRate}% completion rate</span>
+          </div>
+          {FUNNEL_STEPS.map((s, i) => {
+            const count = regCounts[s.key] ?? 0
+            const prev = i > 0 ? (regCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
+            const dropPct = prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
+            const abandoned = regAbandoned[s.key] ?? 0
+            const isComplete = s.key === 'complete'
+            return (
+              <div key={s.key} style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 13 }}>
+                  <span style={{ color: isComplete ? S.accent : S.text }}>{s.label}</span>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    {abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
+                    {dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
+                    <span style={{ color: S.muted }}>{count}</span>
+                  </div>
+                </div>
+                <Bar pct={(count / regFunnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
               </div>
             )
           })}
@@ -278,6 +341,24 @@ export default async function CommunityDashboard() {
           const topAI = aiSorted[0]
           const smallTeamPct = Math.round(((teams['solo']??0) + (teams['1-5']??0)) / Math.max(total,1) * 100)
           const agencyCount = (roles['marketing_agency']??0) + (roles['freelancer']??0)
+          const overallCompletionRate = (fmCounts['2'] ?? 0) + (regCounts['2'] ?? 0) > 0
+            ? Math.round(((fmCounts['complete'] ?? 0) + (regCounts['complete'] ?? 0)) / ((fmCounts['2'] ?? 0) + (regCounts['2'] ?? 0)) * 100)
+            : 0
+
+          // City data
+          const cityCounts: Record<string, number> = {}
+          for (const m of all) if ((m as any).city) cityCounts[(m as any).city] = (cityCounts[(m as any).city] ?? 0) + 1
+          const klCount = (cityCounts['kl'] ?? 0) + (cityCounts['selangor'] ?? 0)
+          const klPct = total > 0 ? Math.round(klCount / total * 100) : 0
+
+          // AI level data
+          const aiLevelCounts: Record<string, number> = {}
+          for (const m of all) if ((m as any).ai_level) aiLevelCounts[(m as any).ai_level] = (aiLevelCounts[(m as any).ai_level] ?? 0) + 1
+          const neverCount = aiLevelCounts['never'] ?? 0
+          const freeCount = aiLevelCounts['free'] ?? 0
+          const beginnerCount = neverCount + freeCount
+          const beginnerPct = total > 0 ? Math.round(beginnerCount / total * 100) : 0
+
           const insights: {icon:string; title:string; body:string}[] = [
             {
               icon: '🏆',
@@ -301,18 +382,28 @@ export default async function CommunityDashboard() {
             },
             {
               icon: '📈',
-              title: `${completionRate}% form completion — high intent audience`,
+              title: `${overallCompletionRate}% form completion — high intent audience`,
               body: `A 12-step form with 75%+ completion means these aren't casual sign-ups. They invested time. They're motivated. Expect high event attendance and paid offer conversion.`,
+            },
+            {
+              icon: '📍',
+              title: `${klPct}% are in KL/Selangor — your offline event can fill a room`,
+              body: `${klCount} members are within driving distance of a KL venue. An offline workshop at capacity (30–40 pax) can realistically be sold out from this community alone. You already have the audience.`,
+            },
+            {
+              icon: '🆓',
+              title: `${beginnerPct}% are beginners (Free plan or never used Claude)`,
+              body: `${beginnerCount} members are on the free tier or haven't started yet. A "Claude for Beginners" half-day workshop at RM 97–197 is your lowest-friction paid offer — they have the highest urgency to learn and the lowest bar to convert.`,
             },
           ]
           return (
-            <Section title="💡 Top 5 Insights">
+            <Section title="💡 Top Insights">
               {insights.map((ins, i) => (
                 <div key={i} style={{
                   background: 'rgba(232,118,10,0.05)',
                   border: '1px solid rgba(232,118,10,0.15)',
                   borderRadius: 12, padding: '16px 18px',
-                  marginBottom: i < 4 ? 10 : 0,
+                  marginBottom: i < insights.length - 1 ? 10 : 0,
                 }}>
                   <p style={{ color: S.text, fontWeight: 700, fontSize: 14, margin: '0 0 6px' }}>
                     {ins.icon} {ins.title}

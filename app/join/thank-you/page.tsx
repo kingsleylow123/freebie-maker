@@ -164,6 +164,40 @@ export default function JoinThankYouPage() {
           </p>
         </div>
 
+        {/* WhatsApp join button — ABOVE THE FOLD */}
+        <div style={animated(300)}>
+          <a
+            href="https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '17px',
+              backgroundColor: '#25D366',
+              color: '#000',
+              textDecoration: 'none',
+              fontSize: '16px',
+              fontWeight: 700,
+              borderRadius: '14px',
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              marginBottom: '8px',
+              letterSpacing: '0.2px',
+            }}
+          >
+            Join Claude Malaysia WhatsApp →
+          </a>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '13px',
+            color: 'rgba(237,237,237,0.5)',
+            margin: '0 0 28px',
+          }}>
+            👋 Make an intro in the group once you&apos;re in!
+          </p>
+        </div>
+
         {/* AI Action Plan */}
         {recommendations.length > 0 && (
           <div style={animated(350)}>
@@ -237,43 +271,6 @@ export default function JoinThankYouPage() {
           </div>
         )}
 
-        {/* WhatsApp join button */}
-        <div style={animated(recommendations.length > 0 ? 760 : 350)}>
-          <a
-            href="https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: '17px',
-              backgroundColor: '#25D366',
-              color: '#000',
-              textDecoration: 'none',
-              fontSize: '16px',
-              fontWeight: 700,
-              borderRadius: '14px',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              marginBottom: '12px',
-              letterSpacing: '0.2px',
-            }}
-          >
-            Join Claude Malaysia WhatsApp →
-          </a>
-        </div>
-
-        {/* Intro CTA */}
-        <p style={{
-          textAlign: 'center',
-          fontSize: '14px',
-          color: 'rgba(237,237,237,0.6)',
-          margin: '12px 0 24px',
-          lineHeight: 1.5,
-          ...animated(recommendations.length > 0 ? 820 : 400),
-        }}>
-          👋 Now go make an intro in the group once you&apos;re in!
-        </p>
 
         {/* Share button */}
         <div style={{ textAlign: 'center', ...animated(recommendations.length > 0 ? 860 : 450) }}>

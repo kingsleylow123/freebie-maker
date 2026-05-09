@@ -79,19 +79,22 @@ const VALUE_LABELS: Record<string, string> = {
   facilitator: 'Event facilitator',
 }
 
+// Steps added recently — don't show misleading drop % for these
+const NEW_STEPS = new Set(['city', 'ai_level', 'source'])
+
 const FUNNEL_STEPS = [
   { key: '2', label: 'Email' },
-  { key: 'city', label: 'City' },
+  { key: 'city', label: 'City 🆕' },
   { key: '3', label: 'WhatsApp' },
   { key: '4', label: 'Role' },
-  { key: 'ai_level', label: 'Claude Plan' },
+  { key: 'ai_level', label: 'Claude Plan 🆕' },
   { key: '5', label: 'Team Size' },
   { key: '6', label: 'AI Use Cases' },
   { key: '7', label: 'Pain Point' },
   { key: '8', label: 'Community Value' },
   { key: '9', label: 'Notifications' },
   { key: '10', label: 'Social Link' },
-  { key: 'source', label: 'Heard From' },
+  { key: 'source', label: 'Heard From 🆕' },
   { key: 'complete', label: '✅ Submitted' },
 ]
 
@@ -275,22 +278,24 @@ export default async function CommunityDashboard() {
             <span style={{ color: fmCompletionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{fmCompletionRate}% completion rate</span>
           </div>
           {FUNNEL_STEPS.map((s, i) => {
+            const isNew = NEW_STEPS.has(s.key)
             const count = fmCounts[s.key] ?? 0
             const prev = i > 0 ? (fmCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
-            const dropPct = prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
+            const dropPct = !isNew && prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
             const abandoned = fmAbandoned[s.key] ?? 0
             const isComplete = s.key === 'complete'
             return (
               <div key={s.key} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 13 }}>
-                  <span style={{ color: isComplete ? S.accent : S.text }}>{s.label}</span>
+                  <span style={{ color: isComplete ? S.accent : isNew ? 'rgba(237,237,237,0.5)' : S.text }}>{s.label}</span>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
-                    {dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
-                    <span style={{ color: S.muted }}>{count}</span>
+                    {isNew && <span style={{ color: 'rgba(237,237,237,0.3)', fontSize: 11 }}>building data...</span>}
+                    {!isNew && abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
+                    {!isNew && dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
+                    <span style={{ color: isNew ? 'rgba(237,237,237,0.3)' : S.muted }}>{count}</span>
                   </div>
                 </div>
-                <Bar pct={(count / fmFunnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
+                <Bar pct={isNew ? (count / Math.max(fmFunnelMax, 1)) * 100 : (count / fmFunnelMax) * 100} color={isComplete ? S.accent : isNew ? 'rgba(255,255,255,0.12)' : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
               </div>
             )
           })}
@@ -303,22 +308,24 @@ export default async function CommunityDashboard() {
             <span style={{ color: regCompletionRate >= 70 ? S.green : S.red, fontWeight: 700, fontSize: 13 }}>{regCompletionRate}% completion rate</span>
           </div>
           {FUNNEL_STEPS.map((s, i) => {
+            const isNew = NEW_STEPS.has(s.key)
             const count = regCounts[s.key] ?? 0
             const prev = i > 0 ? (regCounts[FUNNEL_STEPS[i - 1].key] ?? 0) : count
-            const dropPct = prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
+            const dropPct = !isNew && prev > 0 && i > 0 && count < prev ? Math.round(((prev - count) / prev) * 100) : 0
             const abandoned = regAbandoned[s.key] ?? 0
             const isComplete = s.key === 'complete'
             return (
               <div key={s.key} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 13 }}>
-                  <span style={{ color: isComplete ? S.accent : S.text }}>{s.label}</span>
+                  <span style={{ color: isComplete ? S.accent : isNew ? 'rgba(237,237,237,0.5)' : S.text }}>{s.label}</span>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
-                    {dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
-                    <span style={{ color: S.muted }}>{count}</span>
+                    {isNew && <span style={{ color: 'rgba(237,237,237,0.3)', fontSize: 11 }}>building data...</span>}
+                    {!isNew && abandoned > 0 && <span style={{ color: S.red, fontSize: 11 }}>🚪 {abandoned} left here</span>}
+                    {!isNew && dropPct > 0 && <span style={{ color: S.red, fontSize: 11 }}>-{dropPct}%</span>}
+                    <span style={{ color: isNew ? 'rgba(237,237,237,0.3)' : S.muted }}>{count}</span>
                   </div>
                 </div>
-                <Bar pct={(count / regFunnelMax) * 100} color={isComplete ? S.accent : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
+                <Bar pct={isNew ? (count / Math.max(regFunnelMax, 1)) * 100 : (count / regFunnelMax) * 100} color={isComplete ? S.accent : isNew ? 'rgba(255,255,255,0.12)' : dropPct > 10 ? 'rgba(255,107,107,0.6)' : 'rgba(232,118,10,0.45)'} />
               </div>
             )
           })}
@@ -394,6 +401,21 @@ export default async function CommunityDashboard() {
               icon: '🆓',
               title: `${beginnerPct}% are beginners (Free plan or never used Claude)`,
               body: `${beginnerCount} members are on the free tier or haven't started yet. A "Claude for Beginners" half-day workshop at RM 97–197 is your lowest-friction paid offer — they have the highest urgency to learn and the lowest bar to convert.`,
+            },
+            {
+              icon: '📉',
+              title: `Pain Point step loses 8% — your biggest real drop-off`,
+              body: `70 of 76 who reach AI Use Cases continue to Pain Point. The 8% who drop here likely hit "free text" fatigue. Consider pre-filling an example or adding a "Skip" option to recover these leads — they've already answered 7 questions.`,
+            },
+            {
+              icon: '🤝',
+              title: `Industry Knowledge (50 picks) is your #1 community asset`,
+              body: `Half your community wants to share industry expertise. You have founders across Finance, SaaS, F&B, Logistics, Property, and more. Run a "Meet the Members" panel — free event, maximum networking value, costs you nothing to host.`,
+            },
+            {
+              icon: '🏟️',
+              title: `You already have 3 venues + 5 sponsors — zero venue cost for first event`,
+              body: `Duncan Tsen, philip (Construction KL), and Branson Chin all offered venues. Ellery Nicol and Duncan flagged themselves as sponsors. Your first offline event can be zero-cost on the venue and partially sponsored. No excuses not to run it.`,
             },
           ]
           return (

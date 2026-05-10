@@ -24,12 +24,15 @@ const ANIMATION_CSS = `
 `;
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
-type StepKey = '1'|'2'|'3'|'city'|'4'|'ai_level'|'4a'|'4b'|'5'|'6'|'7'|'8'|'9'|'10'|'source'
+type StepKey = '1'|'2'|'3'|'city'|'4'|'ai_level'|'4a'|'4b'|'4c'|'5'|'6'|'7'|'8'|'9'|'10'|'source'
 
 function getVisibleSteps(role: string): StepKey[] {
   const base: StepKey[] = ['1','2','3','city','4','ai_level']
   if (role === 'business_owner' || role === 'freelancer') {
     base.push('4a', '4b')
+  }
+  if (role === 'marketing_agency') {
+    base.push('4c')
   }
   base.push('5','6','7','8','9','10','source')
   return base
@@ -74,6 +77,20 @@ const INDUSTRY_OPTIONS = [
   { value: 'healthcare', label: 'Healthcare' },
   { value: 'finance', label: 'Finance' },
   { value: 'marketing', label: 'Marketing / Media' },
+  { value: 'others', label: 'Others' },
+]
+
+const AGENCY_CLIENT_FOCUS_OPTIONS = [
+  { value: 'fnb', label: 'F&B / Restaurant' },
+  { value: 'property', label: 'Property / Real Estate' },
+  { value: 'ecommerce', label: 'E-commerce / Retail' },
+  { value: 'healthcare', label: 'Healthcare / Medical' },
+  { value: 'education', label: 'Education / Training' },
+  { value: 'finance', label: 'Finance / Insurance' },
+  { value: 'tech', label: 'Tech / SaaS' },
+  { value: 'professional_services', label: 'Professional Services' },
+  { value: 'sme', label: 'SMEs (any industry)' },
+  { value: 'corporate', label: 'Corporate / Enterprise' },
   { value: 'others', label: 'Others' },
 ]
 
@@ -155,6 +172,7 @@ interface JoinAnswers {
   social_link: string;
   social_platform: string;
   heard_from: string;
+  agency_client_focus: string[];
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -205,6 +223,7 @@ export default function JoinPage() {
     social_link: "",
     social_platform: "",
     heard_from: "",
+    agency_client_focus: [],
   });
   const [submitting, setSubmitting] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
@@ -272,6 +291,7 @@ export default function JoinPage() {
     if (s === '7') return answers.pain_point.trim().length > 0
     if (s === '8') return answers.community_value.length > 0
     if (s === '9') return answers.event_preference.length > 0
+    if (s === '4c') return answers.agency_client_focus.length > 0
     if (s === '10') return answers.social_platform.length > 0 && answers.social_link.trim().length > 0
     if (s === 'source') return answers.heard_from.length > 0
     return false
@@ -616,6 +636,7 @@ export default function JoinPage() {
       case 'ai_level': return "Which Claude plan do you use?";
       case '4a': return "What industry are you in?";
       case '4b': return "Who are your main clients?";
+      case '4c': return "What industries do your clients come from?";
       case '5': return "How big is your team?";
       case '6': return "What do you feel AI can help you with, but haven't explored yet?";
       case '7': return "What is your biggest pain point in your life or business right now?";
@@ -936,6 +957,54 @@ export default function JoinPage() {
                     boxSizing: "border-box",
                   }}
                 />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Step 4c: agency client focus (marketing_agency only) — multi-select
+    if (step === '4c') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <p style={{ color: T.muted, fontSize: "13px", margin: "0 0 4px" }}>
+            Select all that apply
+          </p>
+          {AGENCY_CLIENT_FOCUS_OPTIONS.map((opt) => {
+            const selected = answers.agency_client_focus.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  const current = answers.agency_client_focus;
+                  const updated = current.includes(opt.value)
+                    ? current.filter((v) => v !== opt.value)
+                    : [...current, opt.value];
+                  setAnswers((p) => ({ ...p, agency_client_focus: updated }));
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: "12px",
+                  width: "100%", minHeight: "48px", padding: "12px 16px",
+                  borderRadius: "12px",
+                  background: selected ? "rgba(232,118,10,0.12)" : T.surface,
+                  border: selected ? "1.5px solid #E8760A" : `1px solid ${T.border}`,
+                  color: selected ? T.text : "rgba(237,237,237,0.7)",
+                  fontSize: "15px", fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: selected ? 600 : 400, textAlign: "left",
+                  cursor: "pointer", transition: "all 0.15s ease", boxSizing: "border-box",
+                }}
+              >
+                <span style={{
+                  width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0,
+                  border: selected ? "none" : "2px solid rgba(255,255,255,0.2)",
+                  background: selected ? "#E8760A" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s ease", boxSizing: "border-box",
+                }}>
+                  {selected && <span style={{ color: "#fff", fontSize: "11px", fontWeight: 700 }}>✓</span>}
+                </span>
                 {opt.label}
               </button>
             );

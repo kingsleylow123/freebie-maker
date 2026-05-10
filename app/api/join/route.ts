@@ -252,6 +252,7 @@ export async function POST(req: NextRequest) {
       city: body.city ?? null,
       ai_level: body.ai_level ?? null,
       heard_from: body.heard_from ?? null,
+      agency_client_focus: Array.isArray(body.agency_client_focus) ? body.agency_client_focus : null,
       referrer: body.referrer ?? null,
       user_agent: body.user_agent ?? null,
     };

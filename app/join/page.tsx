@@ -261,7 +261,7 @@ export default function JoinPage() {
     if (!s) return false
     if (s === '1') return answers.name.trim().length > 0
     if (s === '2') { const e = answers.email.trim(); const at = e.indexOf('@'); return at > 0 && (e.includes('.com') || e.includes('.my') || e.includes('.net') || e.includes('.io') || e.includes('.org') || e.includes('.co')) }
-    if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length===10||d.length===11 }
+    if (s === '3') { const d = answers.phone.replace(/[^0-9]/g,''); return d.length >= 8 && d.length <= 13 }
     if (s === 'city') return answers.city.length > 0
     if (s === '4') return answers.role.length > 0
     if (s === 'ai_level') return answers.ai_level.length > 0
@@ -687,15 +687,14 @@ export default function JoinPage() {
             value={answers.phone}
             onChange={(e) => setAnswers((p) => ({ ...p, phone: e.target.value }))}
             onKeyDown={(e) => e.key === "Enter" && valid && goNext()}
-            placeholder="e.g. 0122850125"
+            placeholder="e.g. 60123456789 or 6588XXXXXX"
             style={textInputStyle}
           />
           {answers.phone.length > 0 &&
             phoneDigits.length > 0 &&
-            phoneDigits.length !== 10 &&
-            phoneDigits.length !== 11 && (
+            !(phoneDigits.length >= 8 && phoneDigits.length <= 13) && (
               <p style={{ color: "#ff6b6b", fontSize: "13px", margin: "8px 0 0" }}>
-                Please enter a valid Malaysian number (10 or 11 digits)
+                Please include your country code (e.g. 60123456789 for MY, 6588XXXXXX for SG)
               </p>
             )}
         </div>

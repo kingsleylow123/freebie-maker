@@ -50,10 +50,8 @@ const CITY_OPTIONS = [
 const AI_LEVEL_OPTIONS = [
   { value: 'never', label: '🔰 Never used Claude yet' },
   { value: 'free', label: '🆓 Free plan (claude.ai)' },
-  { value: 'pro', label: '⚡ Pro Plan' },
+  { value: 'pro', label: '⚡ Pro Plan ($17/mo)' },
   { value: 'max', label: '🚀 Max Plan' },
-  { value: 'app', label: '📱 Claude App (mobile)' },
-  { value: 'code', label: '💻 Claude Code / Cowork' },
 ]
 
 const HEARD_FROM_OPTIONS = [

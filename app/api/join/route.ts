@@ -17,6 +17,7 @@ function buildGHLTags(body: {
     employee: "cm:employee",
     developer: "cm:developer",
     freelancer: "cm:freelancer",
+    creator: "cm:creator",
     marketing_agency: "cm:marketing_agency",
   };
   if (body.role && roleMap[body.role]) tags.push(roleMap[body.role]);
@@ -170,6 +171,23 @@ function fallbackRecommendations(
         title: "Stay Ahead by Learning AI Before Your Colleagues",
         description:
           "AI literacy is becoming the most in-demand workplace skill. Building it now — even 30 minutes a week — puts you in a different category when promotions and new roles open up.",
+      },
+    ],
+    creator: [
+      {
+        title: "Turn One Video Into 10 Pieces of Content",
+        description:
+          "Use AI to repurpose every video into captions, carousels, tweets, and email newsletters automatically. Creators using AI content pipelines publish 3x more without burning out.",
+      },
+      {
+        title: "Find Viral Ideas Before You Film Anything",
+        description:
+          "Use Claude to analyse trending topics in your niche, generate hook variations, and predict which angles will perform — before you spend a single hour filming.",
+      },
+      {
+        title: "Automate Brand Deal Pitches and Follow-Ups",
+        description:
+          "Stop losing sponsorships to slow replies. Use AI to draft personalised pitch decks, rate cards, and follow-up sequences so you close brand deals faster with less back-and-forth.",
       },
     ],
     freelancer: [

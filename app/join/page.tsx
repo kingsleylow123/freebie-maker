@@ -104,6 +104,7 @@ const ROLE_OPTIONS = [
   { value: "employee", label: "Employee / Office Worker" },
   { value: "developer", label: "Developer" },
   { value: "freelancer", label: "Freelancer" },
+  { value: "creator", label: "Content Creator" },
   { value: "marketing_agency", label: "Marketing Agency" },
 ];
 

@@ -12,7 +12,12 @@ export async function login(
 ) {
   const password = formData.get('password') as string
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const validPasswords = [
+    process.env.ADMIN_PASSWORD,
+    process.env.ADMIN_PASSWORD_TOM,
+  ].filter(Boolean)
+
+  if (!validPasswords.includes(password)) {
     return { error: 'Invalid password' }
   }
 

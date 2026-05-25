@@ -3,6 +3,37 @@ import { isAdmin } from '@/app/admin/actions'
 import { createAdminClient } from '@/lib/supabase-admin'
 import Link from 'next/link'
 import MembersTable from './MembersTable'
+import Anthropic from '@anthropic-ai/sdk'
+import { unstable_cache } from 'next/cache'
+
+type PainTheme = {
+  theme: string   // specific 6–10 word title naming the actual problem
+  intent: string  // what they really want underneath
+  teams: string   // which team sizes feel this most
+  quote: string   // best direct quote from data
+  opportunity: string  // what Claude Malaysia can sell them
+}
+
+const analyzePainThemes = unstable_cache(
+  async (prompt: string): Promise<PainTheme[] | null> => {
+    try {
+      const client = new Anthropic()
+      const result = await Promise.race([
+        client.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 14000)),
+      ]) as Anthropic.Message
+      const text = result.content[0]?.type === 'text' ? result.content[0].text : ''
+      const parsed = JSON.parse(text)
+      return Array.isArray(parsed) ? parsed : null
+    } catch { return null }
+  },
+  ['pain-themes-v2'],
+  { revalidate: 21600 } // 6-hour cache
+)
 
 type StripeCharge = {
   id: string
@@ -190,41 +221,54 @@ export default async function CommunityDashboard() {
   const industrySorted = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 12)
   const maxIndustry = industrySorted[0]?.[1] ?? 1
 
-  // Pain point word cloud
-  const STOP_WORDS = new Set([
-    'a','an','the','and','or','but','of','to','in','for','on','with','at','by','from',
-    'is','it','my','i','me','we','our','are','be','have','has','do','not','no','so',
-    'as','if','too','very','can','get','got','also','more','all','its','this','that',
-    'how','what','when','which','who','about','up','just','than','then','now','still',
-    'really','much','their','they','them','there','these','those','would','could',
-    'should','will','was','were','been','being','into','through','during','while',
-    'after','before','since','between','without','within','against','because',
-    'although','however','therefore','thus','yet','both','each','every','other',
-    'such','same','different','able','make','know','take','find','use','try','new',
-    'old','good','bad','high','low','long','big','small','many','few','some','any',
-    'most','less','need','want','dont','cannot','need','using','used','lot','time',
-    'work','working','things','thing','way','ways','help','still','even','often',
-    // Malay
-    'yang','untuk','dengan','tidak','ada','saya','dan','atau','ke','di','dari',
-    'pada','dalam','ini','itu','juga','sudah','akan','bisa','buat','lagi','tapi','kita',
-  ])
-  const wordFreq: Record<string, number> = {}
+  // Pain points — grouped by team size for weighted analysis
+  const TEAM_WEIGHT: Record<string, number> = {
+    'solo': 1, '1-5': 3, '5-10': 7, '10-30': 20, '30-100': 65, '100+': 150,
+  }
   const rawPainPoints: string[] = []
+  const painByTeam: Record<string, string[]> = {
+    'solo': [], '1-5': [], '5-10': [], '10-30': [], '30-100': [], '100+': [],
+  }
   for (const m of all) {
     const pt = (m as any).pain_point as string | null
     if (!pt?.trim()) continue
     rawPainPoints.push(pt.trim())
-    const words = pt.toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length >= 3 && !STOP_WORDS.has(w))
-    for (const word of words) wordFreq[word] = (wordFreq[word] ?? 0) + 1
+    const ts = (m as any).team_size as string | null
+    if (ts && painByTeam[ts]) painByTeam[ts].push(pt.trim())
   }
-  const wordCloudData = Object.entries(wordFreq)
-    .filter(([, c]) => c >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 50)
-  const maxWordFreq = wordCloudData[0]?.[1] ?? 1
+
+  // Build weighted prompt for Claude — larger teams get more emphasis
+  const teamSections = Object.entries(painByTeam)
+    .filter(([, pts]) => pts.length > 0)
+    .map(([ts, pts]) => {
+      const w = TEAM_WEIGHT[ts] ?? 1
+      const label = ts === 'solo' ? 'Solo operators (1 person)' :
+        ts === '1-5' ? 'Small teams (1–5 people)' :
+        ts === '5-10' ? 'Growing teams (5–10 people)' :
+        ts === '10-30' ? 'Mid-size teams (10–30 people)' :
+        ts === '30-100' ? 'Larger teams (30–100 people)' : 'Enterprise (100+ people)'
+      return `\n### ${label} — weight ×${w} (${pts.length} responses)\n${pts.slice(0, 25).map(p => `- "${p}"`).join('\n')}`
+    }).join('\n')
+
+  const painPrompt = `You are a business analyst for Claude Malaysia — a Malaysian AI community with ${rawPainPoints.length} members (business owners, developers, freelancers, employees, students).
+
+Analyse these pain points from members. IMPORTANT: Give significantly more weight to pain points from larger teams — they represent more revenue, more employees, and higher willingness to pay. Solo operators want convenience; larger teams want systems that scale.
+
+${teamSections}
+
+Identify exactly 5 pain themes that matter most (weighted toward larger teams).
+
+For each theme:
+- theme: 6–10 words, name the SPECIFIC problem (e.g. "B2B teams lose deals because follow-up is manual" not "sales problems")
+- intent: What do they REALLY want underneath the surface? (2–3 sentences. Speak to the desire, not the symptom.)
+- teams: Which team sizes feel this most acutely? ("Solo & small teams", "Growing teams 5–30", "All sizes", etc.)
+- quote: Single most representative verbatim quote from the data
+- opportunity: One sentence — what specific product/service/workshop can Claude Malaysia sell to solve this?
+
+Return ONLY valid JSON array, no markdown:
+[{"theme":"...","intent":"...","teams":"...","quote":"...","opportunity":"..."}]`
+
+  const painThemes = await analyzePainThemes(painPrompt)
 
   // Stripe: filter to MYR paid charges only
   const stripeCharges = stripeRaw.filter(
@@ -425,69 +469,113 @@ export default async function CommunityDashboard() {
 
         </div>
 
-        {/* Pain Point Word Cloud */}
-        {wordCloudData.length > 0 && (
-          <Section title={`💭 Pain Point Word Cloud (${rawPainPoints.length} responses)`}>
-            <p style={{ color: S.muted, fontSize: 13, margin: '0 0 20px' }}>
-              What your community is struggling with — word size = how often it appears
-            </p>
+        {/* Pain Point Deep Analysis */}
+        <Section title={`💭 What Your Community Really Wants (${rawPainPoints.length} responses)`}>
+          <p style={{ color: S.muted, fontSize: 13, margin: '0 0 24px' }}>
+            Analysed by Claude — weighted toward larger teams (higher business impact). Each theme represents real intent, not just symptoms.
+          </p>
 
-            {/* Cloud */}
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: '10px 16px', alignItems: 'center',
-              padding: '24px 20px', background: 'rgba(255,255,255,0.02)',
-              borderRadius: 14, marginBottom: 24, lineHeight: 1.3,
-            }}>
-              {wordCloudData.map(([word, count]) => {
-                const ratio = count / maxWordFreq
-                const size = Math.round(13 + ratio * 26)
-                const opacity = 0.35 + ratio * 0.65
-                return (
-                  <span key={word} style={{
-                    fontSize: size,
-                    fontWeight: ratio > 0.5 ? 800 : 600,
-                    color: `rgba(232,118,10,${opacity.toFixed(2)})`,
-                    cursor: 'default',
-                  }}>
-                    {word}
-                  </span>
-                )
-              })}
-            </div>
-
-            {/* Top keyword counts */}
-            <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 10px' }}>
-              Top Keywords
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6, marginBottom: 24 }}>
-              {wordCloudData.slice(0, 14).map(([word, count]) => (
-                <div key={word} style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px',
+          {/* Claude-generated themes */}
+          {painThemes ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+              {painThemes.map((t, i) => (
+                <div key={i} style={{
+                  background: 'rgba(232,118,10,0.04)',
+                  border: '1px solid rgba(232,118,10,0.18)',
+                  borderLeft: `3px solid rgba(232,118,10,${0.4 + (5 - i) * 0.12})`,
+                  borderRadius: '0 12px 12px 0',
+                  padding: '18px 20px',
                 }}>
-                  <span style={{ color: S.text, fontSize: 13 }}>{word}</span>
-                  <span style={{ color: S.accent, fontSize: 13, fontWeight: 700 }}>×{count}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                    <p style={{ color: S.text, fontWeight: 800, fontSize: 15, margin: 0, lineHeight: 1.35 }}>
+                      {['🔥','⚡','💡','🎯','🏗️'][i]} {t.theme}
+                    </p>
+                    <span style={{
+                      color: S.muted, fontSize: 11, fontWeight: 600, letterSpacing: '1px',
+                      background: 'rgba(255,255,255,0.05)', borderRadius: 4,
+                      padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0,
+                    }}>{t.teams}</span>
+                  </div>
+                  <p style={{ color: 'rgba(237,237,237,0.7)', fontSize: 13, margin: '0 0 10px', lineHeight: 1.65 }}>
+                    {t.intent}
+                  </p>
+                  <blockquote style={{
+                    color: 'rgba(237,237,237,0.45)', fontSize: 12, fontStyle: 'italic',
+                    margin: '0 0 10px', padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.025)', borderRadius: 6,
+                    borderLeft: '2px solid rgba(255,255,255,0.1)',
+                  }}>
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
+                  <p style={{ color: S.accent, fontSize: 12, fontWeight: 700, margin: 0 }}>
+                    💰 {t.opportunity}
+                  </p>
                 </div>
               ))}
             </div>
-
-            {/* Raw responses */}
-            <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 10px' }}>
-              What they actually wrote
+          ) : (
+            <p style={{ color: S.muted, fontSize: 13, margin: '0 0 24px', fontStyle: 'italic' }}>
+              Generating AI analysis… (first load takes ~10s, cached for 6 hours after)
             </p>
-            <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {rawPainPoints.map((pt, i) => (
-                <p key={i} style={{
-                  color: 'rgba(237,237,237,0.55)', fontSize: 13, margin: 0,
-                  padding: '10px 14px', background: 'rgba(255,255,255,0.025)',
-                  borderRadius: 8, lineHeight: 1.55,
+          )}
+
+          {/* By team size breakdown */}
+          <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 12px' }}>
+            By Team Size — Raw Voices
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10, marginBottom: 24 }}>
+            {[
+              { key: 'solo', label: 'Solo', weight: '×1', color: 'rgba(232,118,10,0.5)' },
+              { key: '1-5', label: '1–5 people', weight: '×3', color: 'rgba(232,118,10,0.65)' },
+              { key: '5-10', label: '5–10 people', weight: '×7', color: 'rgba(232,118,10,0.8)' },
+              { key: '10-30', label: '10–30 people', weight: '×20', color: S.accent },
+              { key: '30-100', label: '30–100 people', weight: '×65', color: S.amber },
+              { key: '100+', label: '100+ people', weight: '×150', color: '#F5A623' },
+            ].filter(seg => (painByTeam[seg.key] ?? []).length > 0).map(seg => {
+              const pts = painByTeam[seg.key] ?? []
+              return (
+                <div key={seg.key} style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid rgba(255,255,255,0.07)`,
+                  borderRadius: 12, padding: '14px 16px',
                 }}>
-                  &ldquo;{pt}&rdquo;
-                </p>
-              ))}
-            </div>
-          </Section>
-        )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ color: seg.color, fontWeight: 700, fontSize: 13 }}>{seg.label}</span>
+                    <span style={{ color: S.muted, fontSize: 11 }}>{pts.length} · weight {seg.weight}</span>
+                  </div>
+                  {pts.slice(0, 4).map((pt, i) => (
+                    <p key={i} style={{
+                      color: 'rgba(237,237,237,0.55)', fontSize: 12, margin: '0 0 6px',
+                      padding: '6px 10px', background: 'rgba(255,255,255,0.02)',
+                      borderRadius: 6, lineHeight: 1.5, fontStyle: 'italic',
+                    }}>
+                      &ldquo;{pt.length > 80 ? pt.slice(0, 80) + '…' : pt}&rdquo;
+                    </p>
+                  ))}
+                  {pts.length > 4 && (
+                    <p style={{ color: S.muted, fontSize: 11, margin: 0 }}>+{pts.length - 4} more</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Full raw list */}
+          <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 10px' }}>
+            All {rawPainPoints.length} responses
+          </p>
+          <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {rawPainPoints.map((pt, i) => (
+              <p key={i} style={{
+                color: 'rgba(237,237,237,0.55)', fontSize: 13, margin: 0,
+                padding: '10px 14px', background: 'rgba(255,255,255,0.025)',
+                borderRadius: 8, lineHeight: 1.55,
+              }}>
+                &ldquo;{pt}&rdquo;
+              </p>
+            ))}
+          </div>
+        </Section>
 
         {/* FM Funnel */}
         <Section title="📉 Founding Member Funnel (last 7 days)">

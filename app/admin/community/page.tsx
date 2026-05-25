@@ -4,6 +4,17 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import Link from 'next/link'
 import MembersTable from './MembersTable'
 
+type StripeCharge = {
+  id: string
+  amount: number
+  currency: string
+  paid: boolean
+  amount_refunded: number
+  failure_code: string | null
+  created: number
+  billing_details: { name: string | null; email: string | null }
+}
+
 const S = {
   bg: '#0a0a0a',
   card: 'rgba(255,255,255,0.04)',
@@ -104,14 +115,30 @@ export default async function CommunityDashboard() {
 
   const supabase = createAdminClient()
 
+  // Fetch Stripe charges (MYR only, paid, no refunds)
+  async function fetchStripeCharges() {
+    try {
+      const key = process.env.STRIPE_SECRET_KEY
+      if (!key) return []
+      const res = await fetch('https://api.stripe.com/v1/charges?limit=100', {
+        headers: { Authorization: `Basic ${Buffer.from(key + ':').toString('base64')}` },
+        next: { revalidate: 300 },
+      })
+      const json = await res.json()
+      return (json.data ?? []) as StripeCharge[]
+    } catch { return [] }
+  }
+
   const [
     { data: members },
     { data: recentMembers },
     { data: funnelEvents },
+    stripeRaw,
   ] = await Promise.all([
     supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at, industry, city, ai_level, heard_from, pain_point'),
     supabase.from('community_members').select('member_number, founding_member_number, name, email, phone, role, industry, team_size, client_type, created_at').order('created_at', { ascending: false }),
     supabase.from('join_funnel_events').select('step, event_type, referrer').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+    fetchStripeCharges(),
   ])
 
   const all = members ?? []
@@ -199,6 +226,42 @@ export default async function CommunityDashboard() {
     .slice(0, 50)
   const maxWordFreq = wordCloudData[0]?.[1] ?? 1
 
+  // Stripe: filter to MYR paid charges only
+  const stripeCharges = stripeRaw.filter(
+    c => c.currency === 'myr' && c.paid && c.amount_refunded === 0 && !c.failure_code
+  )
+  const stripeRevenue = stripeCharges.reduce((s, c) => s + c.amount, 0) / 100
+  const stripePriceTiers: Record<number, number> = {}
+  for (const c of stripeCharges) {
+    const p = c.amount / 100
+    stripePriceTiers[p] = (stripePriceTiers[p] ?? 0) + 1
+  }
+  const maxTierCount = Math.max(...Object.values(stripePriceTiers), 1)
+  // Unique buyers by email
+  const buyerEmailSet = new Set(stripeCharges.map(c => c.billing_details.email?.toLowerCase() ?? '').filter(Boolean))
+  const uniqueBuyerCount = buyerEmailSet.size
+  // Community member lookup map (email → member)
+  const memberEmailMap = new Map(
+    (recentMembers ?? []).filter(m => m.email).map(m => [m.email.toLowerCase(), m])
+  )
+  const membersWhoConverted = [...buyerEmailSet].filter(e => memberEmailMap.has(e)).length
+  const conversionRate = total > 0 ? Math.round(membersWhoConverted / total * 100) : 0
+  // Build buyer rows (dedup same email, keep highest amount)
+  const buyerMap = new Map<string, { name: string; email: string; amount: number; date: string }>()
+  for (const c of stripeCharges.sort((a, b) => b.amount - a.amount)) {
+    const email = c.billing_details.email?.toLowerCase() ?? ''
+    if (!email) continue
+    if (!buyerMap.has(email)) {
+      buyerMap.set(email, {
+        name: c.billing_details.name ?? '—',
+        email,
+        amount: c.amount / 100,
+        date: new Date(c.created * 1000).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }),
+      })
+    }
+  }
+  const buyerRows = [...buyerMap.values()].sort((a, b) => b.amount - a.amount)
+
   // Funnel — split by referrer
   const fmEvents = (funnelEvents ?? []).filter(e => (e as any).referrer === 'foundingmember')
   const regEvents = (funnelEvents ?? []).filter(e => (e as any).referrer !== 'foundingmember')
@@ -253,6 +316,61 @@ export default async function CommunityDashboard() {
           <StatCard label="FM Completion" value={`${fmCompletionRate}%`} sub={`${fmCounts['complete'] ?? 0} FM submitted`} color={S.amber} />
           <StatCard label="Regular Completion" value={`${regCompletionRate}%`} sub={`${regCounts['complete'] ?? 0} regular submitted`} color={regCompletionRate >= 70 ? S.green : S.red} />
         </div>
+
+        {/* Stripe Workshop Revenue */}
+        {stripeCharges.length > 0 && (
+          <>
+            {/* Revenue stat cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+              <StatCard label="Workshop Revenue" value={`RM ${stripeRevenue.toLocaleString()}`} sub={`${stripeCharges.length} tickets sold`} color={S.green} />
+              <StatCard label="Unique Buyers" value={uniqueBuyerCount} sub={`${membersWhoConverted} already in community`} color={S.accent} />
+              <StatCard label="Conversion Rate" value={`${conversionRate}%`} sub="members → paying" color={conversionRate >= 10 ? S.green : S.amber} />
+              <StatCard label="Not in Community" value={uniqueBuyerCount - membersWhoConverted} sub="paid but not joined yet" color={S.red} />
+            </div>
+
+            {/* Two-col: price tiers + buyer list */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 16, marginBottom: 16 }}>
+              <Section title="💳 Price Tier Breakdown">
+                {Object.entries(stripePriceTiers).sort((a,b) => Number(b[0])-Number(a[0])).map(([price, count]) => (
+                  <BarRow key={price} label={`RM ${price}`} count={count} max={maxTierCount} color={S.green} />
+                ))}
+                <p style={{ color: S.muted, fontSize: 12, margin: '14px 0 0' }}>
+                  Avg ticket: <strong style={{ color: S.text }}>RM {Math.round(stripeRevenue / uniqueBuyerCount)}</strong> · Highest: <strong style={{ color: S.text }}>RM {Math.max(...Object.keys(stripePriceTiers).map(Number))}</strong>
+                </p>
+              </Section>
+
+              <Section title="🧑‍💼 Workshop Buyers">
+                <div style={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {buyerRows.map((b) => {
+                    const member = memberEmailMap.get(b.email)
+                    return (
+                      <div key={b.email} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: member ? 'rgba(37,211,102,0.05)' : 'rgba(255,255,255,0.025)',
+                        border: `1px solid ${member ? 'rgba(37,211,102,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                        borderRadius: 8, padding: '8px 12px', gap: 8,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: S.text, fontSize: 13, fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</p>
+                          <p style={{ color: S.muted, fontSize: 11, margin: 0 }}>{b.date} · {b.email}</p>
+                          {member && (
+                            <p style={{ color: 'rgba(37,211,102,0.7)', fontSize: 11, margin: '2px 0 0' }}>
+                              ✅ #{(member as any).member_number} · {(member as any).role?.replace('_',' ')} · {(member as any).pain_point?.slice(0,45) || '—'}
+                            </p>
+                          )}
+                          {!member && (
+                            <p style={{ color: 'rgba(255,107,107,0.6)', fontSize: 11, margin: '2px 0 0' }}>⚠️ Not in community yet</p>
+                          )}
+                        </div>
+                        <span style={{ color: S.green, fontWeight: 800, fontSize: 14, whiteSpace: 'nowrap' }}>RM {b.amount}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </Section>
+            </div>
+          </>
+        )}
 
         {/* Founding progress */}
         <div style={{ background: `rgba(245,166,35,0.06)`, border: `1px solid rgba(245,166,35,0.2)`, borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>

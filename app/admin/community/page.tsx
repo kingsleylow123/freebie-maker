@@ -109,7 +109,7 @@ export default async function CommunityDashboard() {
     { data: recentMembers },
     { data: funnelEvents },
   ] = await Promise.all([
-    supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at, industry, city, ai_level, heard_from'),
+    supabase.from('community_members').select('role, team_size, ai_use_cases, community_value, event_preference, founding_member_number, created_at, industry, city, ai_level, heard_from, pain_point'),
     supabase.from('community_members').select('member_number, founding_member_number, name, email, phone, role, industry, team_size, client_type, created_at').order('created_at', { ascending: false }),
     supabase.from('join_funnel_events').select('step, event_type, referrer').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ])
@@ -162,6 +162,42 @@ export default async function CommunityDashboard() {
   }
   const industrySorted = Object.entries(industryCounts).sort((a, b) => b[1] - a[1]).slice(0, 12)
   const maxIndustry = industrySorted[0]?.[1] ?? 1
+
+  // Pain point word cloud
+  const STOP_WORDS = new Set([
+    'a','an','the','and','or','but','of','to','in','for','on','with','at','by','from',
+    'is','it','my','i','me','we','our','are','be','have','has','do','not','no','so',
+    'as','if','too','very','can','get','got','also','more','all','its','this','that',
+    'how','what','when','which','who','about','up','just','than','then','now','still',
+    'really','much','their','they','them','there','these','those','would','could',
+    'should','will','was','were','been','being','into','through','during','while',
+    'after','before','since','between','without','within','against','because',
+    'although','however','therefore','thus','yet','both','each','every','other',
+    'such','same','different','able','make','know','take','find','use','try','new',
+    'old','good','bad','high','low','long','big','small','many','few','some','any',
+    'most','less','need','want','dont','cannot','need','using','used','lot','time',
+    'work','working','things','thing','way','ways','help','still','even','often',
+    // Malay
+    'yang','untuk','dengan','tidak','ada','saya','dan','atau','ke','di','dari',
+    'pada','dalam','ini','itu','juga','sudah','akan','bisa','buat','lagi','tapi','kita',
+  ])
+  const wordFreq: Record<string, number> = {}
+  const rawPainPoints: string[] = []
+  for (const m of all) {
+    const pt = (m as any).pain_point as string | null
+    if (!pt?.trim()) continue
+    rawPainPoints.push(pt.trim())
+    const words = pt.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 3 && !STOP_WORDS.has(w))
+    for (const word of words) wordFreq[word] = (wordFreq[word] ?? 0) + 1
+  }
+  const wordCloudData = Object.entries(wordFreq)
+    .filter(([, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 50)
+  const maxWordFreq = wordCloudData[0]?.[1] ?? 1
 
   // Funnel — split by referrer
   const fmEvents = (funnelEvents ?? []).filter(e => (e as any).referrer === 'foundingmember')
@@ -270,6 +306,70 @@ export default async function CommunityDashboard() {
           </Section>
 
         </div>
+
+        {/* Pain Point Word Cloud */}
+        {wordCloudData.length > 0 && (
+          <Section title={`💭 Pain Point Word Cloud (${rawPainPoints.length} responses)`}>
+            <p style={{ color: S.muted, fontSize: 13, margin: '0 0 20px' }}>
+              What your community is struggling with — word size = how often it appears
+            </p>
+
+            {/* Cloud */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: '10px 16px', alignItems: 'center',
+              padding: '24px 20px', background: 'rgba(255,255,255,0.02)',
+              borderRadius: 14, marginBottom: 24, lineHeight: 1.3,
+            }}>
+              {wordCloudData.map(([word, count]) => {
+                const ratio = count / maxWordFreq
+                const size = Math.round(13 + ratio * 26)
+                const opacity = 0.35 + ratio * 0.65
+                return (
+                  <span key={word} style={{
+                    fontSize: size,
+                    fontWeight: ratio > 0.5 ? 800 : 600,
+                    color: `rgba(232,118,10,${opacity.toFixed(2)})`,
+                    cursor: 'default',
+                  }}>
+                    {word}
+                  </span>
+                )
+              })}
+            </div>
+
+            {/* Top keyword counts */}
+            <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 10px' }}>
+              Top Keywords
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6, marginBottom: 24 }}>
+              {wordCloudData.slice(0, 14).map(([word, count]) => (
+                <div key={word} style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px',
+                }}>
+                  <span style={{ color: S.text, fontSize: 13 }}>{word}</span>
+                  <span style={{ color: S.accent, fontSize: 13, fontWeight: 700 }}>×{count}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Raw responses */}
+            <p style={{ color: S.muted, fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', margin: '0 0 10px' }}>
+              What they actually wrote
+            </p>
+            <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {rawPainPoints.map((pt, i) => (
+                <p key={i} style={{
+                  color: 'rgba(237,237,237,0.55)', fontSize: 13, margin: 0,
+                  padding: '10px 14px', background: 'rgba(255,255,255,0.025)',
+                  borderRadius: 8, lineHeight: 1.55,
+                }}>
+                  &ldquo;{pt}&rdquo;
+                </p>
+              ))}
+            </div>
+          </Section>
+        )}
 
         {/* FM Funnel */}
         <Section title="📉 Founding Member Funnel (last 7 days)">

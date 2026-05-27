@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
           .filter(Boolean)
       : [];
 
-    const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t";
+    const DEFAULT_WHATSAPP = "https://whatsapp.com/channel/0029Vb7x3Y7GZNCr8swXnH27";
 
     if (!reelInput?.trim()) {
       return NextResponse.json(

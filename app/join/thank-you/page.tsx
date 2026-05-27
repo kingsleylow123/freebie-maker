@@ -167,7 +167,7 @@ export default function JoinThankYouPage() {
         {/* WhatsApp join button — ABOVE THE FOLD */}
         <div style={animated(300)}>
           <a
-            href="https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t"
+            href="https://whatsapp.com/channel/0029Vb7x3Y7GZNCr8swXnH27"
             target="_blank"
             rel="noopener noreferrer"
             style={{

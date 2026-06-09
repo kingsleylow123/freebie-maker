@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         reel_input: reelInput.trim(),
         sections: generated.sections,
         whatsapp_link: whatsappLink?.trim() || DEFAULT_WHATSAPP,
-        cta_text: ctaText?.trim() || "Questions? Join our Claude Whatsapp Group",
+        cta_text: ctaText?.trim() || "Join Claude Malaysia Free WhatsApp Group →",
         link_url: linkUrl?.trim() || null,
         link_label: linkLabel?.trim() || null,
       })

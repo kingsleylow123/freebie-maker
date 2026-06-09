@@ -73,7 +73,7 @@ export default async function FreebiePage({ params }: Props) {
 
   if (!data) notFound();
 
-  const DEFAULT_WHATSAPP = "https://whatsapp.com/channel/0029Vb7x3Y7GZNCr8swXnH27";
+  const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/GSONh9iwgvPIYDV16fOALM?s=cl&p=i&ilr=1&amv=1";
   const ctaText = data.cta_text || "Questions? Join our Claude Whatsapp Group";
   const whatsappHref = data.whatsapp_link || DEFAULT_WHATSAPP;
   const totalSteps = data.sections.length;

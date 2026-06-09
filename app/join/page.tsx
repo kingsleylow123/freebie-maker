@@ -424,7 +424,7 @@ export default function JoinPage() {
             Thanks for joining Claude Malaysia.
           </p>
           <a
-            href="https://whatsapp.com/channel/0029Vb7x3Y7GZNCr8swXnH27"
+            href="https://chat.whatsapp.com/GSONh9iwgvPIYDV16fOALM?s=cl&p=i&ilr=1&amv=1"
             target="_blank"
             rel="noopener noreferrer"
             style={{

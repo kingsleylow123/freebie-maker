@@ -20,7 +20,7 @@ export default function ThankYouPage() {
   })
 
   const skoolUrl = process.env.NEXT_PUBLIC_SKOOL_URL ?? '#'
-  const whatsappUrl = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
+  const whatsappUrl = 'https://chat.whatsapp.com/GSONh9iwgvPIYDV16fOALM?s=cl&p=i&ilr=1&amv=1'
 
   const styles = {
     container: {

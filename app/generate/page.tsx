@@ -118,7 +118,7 @@ export default function GeneratePage() {
             <input
               type="url"
               className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white placeholder-white/20 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
-              placeholder="https://chat.whatsapp.com/EcQP4EzOFSwLWfv8uFirsm?mode=gi_t"
+              placeholder="https://chat.whatsapp.com/GSONh9iwgvPIYDV16fOALM?s=cl&p=i&ilr=1&amv=1"
               value={whatsappLink}
               onChange={(e) => setWhatsappLink(e.target.value)}
             />

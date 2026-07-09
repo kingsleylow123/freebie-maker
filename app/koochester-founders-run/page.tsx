@@ -6,7 +6,7 @@ import { useState } from 'react'
 const WA_TEXT = "Hi! I'm a founder and I want to register for the Koochester Founder's Run 🏃 (via Claude Malaysia)"
 const WA_LINK = `https://wa.me/60102099299?text=${encodeURIComponent(WA_TEXT)}`
 
-const TEAM_SIZES = ['Just me', '2–10', '11–50', '51–200', '200+']
+const TEAM_SIZES = ['10–20', '20–30', '30–50', '50–100', '100–200']
 const INDUSTRIES = [
   'F&B / Restaurants', 'Retail / E-commerce', 'Professional Services', 'Property / Construction',
   'Marketing / Agency', 'Technology / SaaS', 'Finance / Insurance', 'Health / Wellness',
@@ -193,7 +193,7 @@ export default function KoochesterFoundersRun() {
           </section>
 
           <footer className="kfr-footer">
-            <p>Koochester Founder&rsquo;s Run · in partnership with <b>Claude Malaysia</b></p>
+            <p>Koochester Founder&rsquo;s Run · in collaboration with <b>Claude Malaysia</b></p>
           </footer>
         </>
       )}
@@ -261,7 +261,7 @@ const CSS = `
 
 /* HERO */
 .kfr-hero{max-width:760px;margin:0 auto;padding:64px 22px 8px;text-align:center;animation:kfrRise .7s cubic-bezier(.2,.7,.2,1) both}
-.kfr-h1{font-family:var(--serif);font-weight:340;line-height:1.02;letter-spacing:-.02em;font-size:clamp(44px,8vw,84px);margin:16px 0 0;color:var(--ink)}
+.kfr-h1{font-family:var(--serif);font-weight:340;line-height:1.04;letter-spacing:-.02em;font-size:clamp(37px,8.5vw,84px);margin:16px 0 0;color:var(--ink)}
 .kfr-h1 em{font-style:italic;color:var(--clay-deep);font-weight:440}
 .kfr-lead{max-width:620px;margin:20px auto 0;font-size:clamp(16px,2.1vw,20px);line-height:1.55;color:var(--ink-soft)}
 .kfr-chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:26px 0 0}
@@ -332,10 +332,27 @@ const CSS = `
 .kfr-footer b{color:var(--ink-soft)}
 
 @media(max-width:560px){
-  .kfr-hero{padding-top:48px}
-  .kfr-posters{grid-template-columns:1fr;max-width:420px}
+  .kfr-hero{padding:44px 20px 4px}
+  .kfr-lead{font-size:16px}
+  .kfr-chips{gap:7px}
+  .kfr-chip{font-size:12px;padding:8px 12px}
+  .kfr-posters{grid-template-columns:1fr;max-width:440px;gap:14px;margin-top:36px}
+  .kfr-section{padding:48px 20px 0}
+  .kfr-form-wrap{margin-top:44px;padding:0 16px}
+  .kfr-form-card{padding:28px 18px}
   .kfr-row{grid-template-columns:1fr}
   .kfr-toggle{grid-template-columns:1fr}
+  /* Bigger, easier touch targets on phones (min 44px). */
+  .kfr-pills{gap:8px}
+  .kfr-pill{padding:12px 16px;font-size:14px;min-height:44px;display:inline-flex;align-items:center}
+  .kfr-toggle-btn{min-height:48px}
+  .kfr-input{padding:14px}
+  .kfr-btn{width:100%}
+  .kfr-hero-cta{width:auto;align-self:center}
+}
+@media(max-width:380px){
+  .kfr-chip{font-size:11.5px;padding:7px 11px}
+  .kfr-form-card{padding:24px 15px}
 }
 @media(prefers-reduced-motion:reduce){
   .kfr-hero,.kfr-success,.kfr-check{animation:none}

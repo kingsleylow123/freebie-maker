@@ -42,9 +42,9 @@ export default function KoochesterFoundersRun() {
     2: emailOk,
     3: phone.trim().length > 0,
     4: true,
-    5: company.trim().length > 0,
-    6: teamSize.length > 0,
-    7: true,
+    5: teamSize.length > 0,
+    6: true,
+    7: company.trim().length > 0,
     8: challenge.trim().length > 0,
     9: dream.trim().length > 0,
   }
@@ -213,25 +213,31 @@ export default function KoochesterFoundersRun() {
                 </Q>
               )}
               {step === 5 && (
-                <Q n={5} title="What's your company called?">
-                  <input className="kfr-qinput" value={company} onChange={e => setCompany(e.target.value)} onKeyDown={onEnter} placeholder="Your company" autoComplete="organization" autoFocus />
-                  <Nav canNext={canNext[5]} onNext={next} showBack onBack={back} />
-                </Q>
-              )}
-              {step === 6 && (
-                <Q n={6} title="How big is your team?">
+                <Q n={5} title="How big is your team?">
                   <div className="kfr-select-grid">
                     {TEAM_SIZES.map(s => (
                       <button key={s} type="button" className={`kfr-select-btn kfr-select-btn--pill ${teamSize === s ? 'is-on' : ''}`} onClick={() => { setTeamSize(s); setTimeout(next, 240) }}>{s}</button>
                     ))}
                   </div>
-                  <Nav canNext={canNext[6]} onNext={next} showBack onBack={back} />
+                  <Nav canNext={canNext[5]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 6 && (
+                <Q n={6} title="What industry are you in?" subtitle="Optional — type it in, or tap Skip.">
+                  <input className="kfr-qinput" value={industry} onChange={e => setIndustry(e.target.value)} onKeyDown={onEnter} placeholder="e.g. F&B, SaaS, Property" autoFocus />
+                  <div className="kfr-survey-nav">
+                    <button type="button" className="kfr-back" onClick={back}>← Back</button>
+                    <div className="kfr-nav-right">
+                      <button type="button" className="kfr-skip" onClick={() => { setIndustry(''); next() }}>Skip</button>
+                      <button type="button" className="kfr-btn kfr-btn--primary" onClick={next} disabled={!industry.trim()}>Next →</button>
+                    </div>
+                  </div>
                 </Q>
               )}
               {step === 7 && (
-                <Q n={7} title="What industry are you in?" subtitle="Optional — type it in, or skip.">
-                  <input className="kfr-qinput" value={industry} onChange={e => setIndustry(e.target.value)} onKeyDown={onEnter} placeholder="e.g. F&B, SaaS, Property" autoFocus />
-                  <Nav canNext={canNext[7]} onNext={next} showBack onBack={back} nextLabel={industry.trim() ? 'Next →' : 'Skip →'} />
+                <Q n={7} title="What's your company called?">
+                  <input className="kfr-qinput" value={company} onChange={e => setCompany(e.target.value)} onKeyDown={onEnter} placeholder="Your company" autoComplete="organization" autoFocus />
+                  <Nav canNext={canNext[7]} onNext={next} showBack onBack={back} />
                 </Q>
               )}
               {step === 8 && (
@@ -407,6 +413,9 @@ const CSS = `
 .kfr-survey-nav--end{justify-content:flex-end}
 .kfr-back{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink-soft);background:transparent;border:none;cursor:pointer;padding:10px 4px}
 .kfr-back:hover{color:var(--ink)}
+.kfr-nav-right{display:flex;align-items:center;gap:16px}
+.kfr-skip{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink-faint);background:transparent;border:none;cursor:pointer;padding:10px 4px;text-decoration:underline;text-underline-offset:3px}
+.kfr-skip:hover{color:var(--ink-soft)}
 .kfr-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 
 /* SUCCESS */

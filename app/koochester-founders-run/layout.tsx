@@ -22,15 +22,16 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://claudemalaysia.com'),
+  metadataBase: new URL('https://www.claudemalaysia.com'),
   title: "Koochester Founder's Run 2026 — Register | Claude Malaysia",
   description:
     "Register for the Koochester Founder's Run — a curated morning run for 300 Malaysian founders at KLCC Park, 16 August 2026. Meet, learn and grow the healthy way, then get your personalised AI game plan with Claude Malaysia.",
-  alternates: { canonical: 'https://claudemalaysia.com/koochester-founders-run' },
+  alternates: { canonical: 'https://www.claudemalaysia.com/koochester-founders-run' },
   openGraph: {
     title: "Koochester Founder's Run 2026 — Register",
     description:
       'A curated morning run for 300 Malaysian founders. KLCC Park · 16 Aug 2026. Register and get your personalised AI game plan with Claude Malaysia.',
+    url: 'https://www.claudemalaysia.com/koochester-founders-run',
     images: ['/koochester/poster-1.jpg'],
     type: 'website',
   },

@@ -1,22 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // The event team's WhatsApp — the "register" handoff. +60 10-209 9299 → 60102099299.
 const WA_TEXT = "Hi! I'm a founder and I want to register for the Koochester Founder's Run 🏃 (via Claude Malaysia)"
 const WA_LINK = `https://wa.me/60102099299?text=${encodeURIComponent(WA_TEXT)}`
 
-const TEAM_SIZES = ['10–20', '20–30', '30–50', '50–100', '100–200']
+const TEAM_SIZES = ['Solo', '2–5', '5–10', '10–20', '20–30', '30–50', '50–100', '100–200']
 const INDUSTRIES = [
   'F&B / Restaurants', 'Retail / E-commerce', 'Professional Services', 'Property / Construction',
   'Marketing / Agency', 'Technology / SaaS', 'Finance / Insurance', 'Health / Wellness',
   'Education / Training', 'Manufacturing', 'Logistics', 'Consulting',
 ]
+const TOTAL = 9
 
-type Status = 'form' | 'loading' | 'done'
+type View = 'landing' | 'survey' | 'done'
 
 export default function KoochesterFoundersRun() {
-  const [status, setStatus] = useState<Status>('form')
+  const [view, setView] = useState<View>('landing')
+  const [step, setStep] = useState(1)
+  const [status, setStatus] = useState<'idle' | 'loading'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [recommendation, setRecommendation] = useState<string | null>(null)
 
@@ -32,13 +35,31 @@ export default function KoochesterFoundersRun() {
   const [dream, setDream] = useState('')
   const [website, setWebsite] = useState('') // honeypot
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const canNext: Record<number, boolean> = {
+    1: name.trim().length > 0,
+    2: emailOk,
+    3: phone.trim().length > 0,
+    4: true,
+    5: company.trim().length > 0,
+    6: teamSize.length > 0,
+    7: true,
+    8: challenge.trim().length > 0,
+    9: dream.trim().length > 0,
+  }
+
+  const next = () => setStep(s => Math.min(TOTAL, s + 1))
+  const back = () => setStep(s => Math.max(1, s - 1))
+  const start = () => { setError(null); setStep(1); setView('survey') }
+
+  // Scroll to top whenever the question or view changes (Typeform-style focus).
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
+  }, [step, view])
+
+  async function submit() {
     setError(null)
-    if (!name.trim() || !email.trim() || !phone.trim() || !challenge.trim() || !dream.trim()) {
-      setError('Please fill in your name, email, phone, and the two questions at the bottom.')
-      return
-    }
+    if (!canNext[9]) return
     setStatus('loading')
     try {
       const res = await fetch('/api/public/koochester-founders-run', {
@@ -59,15 +80,22 @@ export default function KoochesterFoundersRun() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError(data.error || 'Something went wrong — please try again.')
-        setStatus('form')
+        setStatus('idle')
         return
       }
       setRecommendation(data.recommendation || null)
-      setStatus('done')
-      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+      setView('done')
     } catch {
       setError('Network error — please try again.')
-      setStatus('form')
+      setStatus('idle')
+    }
+  }
+
+  // Enter advances on single-line inputs (never on textareas).
+  const onEnter = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (canNext[step]) next()
     }
   }
 
@@ -75,9 +103,9 @@ export default function KoochesterFoundersRun() {
     <main className="kfr">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      {status === 'done' ? (
-        <Success recommendation={recommendation} firstName={name.trim().split(/\s+/)[0]} />
-      ) : (
+      {view === 'done' && <Success recommendation={recommendation} firstName={name.trim().split(/\s+/)[0]} />}
+
+      {view === 'landing' && (
         <>
           {/* ═══ HERO ═══ */}
           <header className="kfr-hero">
@@ -92,7 +120,7 @@ export default function KoochesterFoundersRun() {
               <span className="kfr-chip">KLCC Park, KL</span>
               <span className="kfr-chip">300 founders · RM149</span>
             </div>
-            <a href="#register" className="kfr-btn kfr-btn--primary kfr-hero-cta">Register for the run →</a>
+            <button type="button" onClick={start} className="kfr-btn kfr-btn--primary kfr-hero-cta">Register for the run →</button>
           </header>
 
           {/* ═══ POSTERS ═══ */}
@@ -115,81 +143,9 @@ export default function KoochesterFoundersRun() {
             </p>
             <p className="kfr-why">
               <b>Why the survey?</b> You run with founders in the morning; we hand you a concrete
-              first move with AI in the afternoon. Two minutes below → your personalised game plan.
+              first move with AI in the afternoon. Two minutes → your personalised game plan.
             </p>
-          </section>
-
-          {/* ═══ REGISTER / SURVEY ═══ */}
-          <section id="register" className="kfr-form-wrap">
-            <div className="kfr-form-card">
-              <p className="kfr-eyebrow">Register</p>
-              <h2 className="kfr-h2 kfr-form-title">Claim your spot.</h2>
-              <p className="kfr-form-sub">Founders only. Takes ~2 minutes — you&rsquo;ll get a personalised AI recommendation at the end.</p>
-
-              <form onSubmit={handleSubmit} className="kfr-form" noValidate>
-                <Field label="Full name" required>
-                  <input className="kfr-input" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoComplete="name" />
-                </Field>
-
-                <div className="kfr-row">
-                  <Field label="Email" required>
-                    <input className="kfr-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
-                  </Field>
-                  <Field label="WhatsApp / phone" required>
-                    <input className="kfr-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 012 345 6789" autoComplete="tel" />
-                  </Field>
-                </div>
-
-                <Field label="Are you the founder?">
-                  <div className="kfr-toggle">
-                    <button type="button" className={`kfr-toggle-btn ${isFounder ? 'is-on' : ''}`} onClick={() => setIsFounder(true)}>Yes, I&rsquo;m the founder</button>
-                    <button type="button" className={`kfr-toggle-btn ${!isFounder ? 'is-on' : ''}`} onClick={() => setIsFounder(false)}>No, I&rsquo;m on the team</button>
-                  </div>
-                </Field>
-
-                {!isFounder && (
-                  <Field label="Your role">
-                    <input className="kfr-input" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Head of Ops" />
-                  </Field>
-                )}
-
-                <div className="kfr-row">
-                  <Field label="Company name">
-                    <input className="kfr-input" value={company} onChange={e => setCompany(e.target.value)} placeholder="Your company" autoComplete="organization" />
-                  </Field>
-                  <Field label="Industry">
-                    <input className="kfr-input" list="kfr-industries" value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Start typing…" />
-                    <datalist id="kfr-industries">{INDUSTRIES.map(i => <option key={i} value={i} />)}</datalist>
-                  </Field>
-                </div>
-
-                <Field label="Team size">
-                  <div className="kfr-pills">
-                    {TEAM_SIZES.map(s => (
-                      <button key={s} type="button" className={`kfr-pill ${teamSize === s ? 'is-on' : ''}`} onClick={() => setTeamSize(s)}>{s}</button>
-                    ))}
-                  </div>
-                </Field>
-
-                <Field label="What's your biggest challenge in growing your business right now?" required>
-                  <textarea className="kfr-input kfr-textarea" value={challenge} onChange={e => setChallenge(e.target.value)} rows={3} maxLength={3000} placeholder="Be specific — this shapes your recommendation." />
-                </Field>
-
-                <Field label="What does a dream 10-out-of-10 look like with AI?" required>
-                  <textarea className="kfr-input kfr-textarea" value={dream} onChange={e => setDream(e.target.value)} rows={3} maxLength={3000} placeholder="If AI worked perfectly for your business — what would it do?" />
-                </Field>
-
-                {/* honeypot — hidden from humans */}
-                <input className="kfr-hp" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} aria-hidden="true" />
-
-                {error && <p className="kfr-error">{error}</p>}
-
-                <button type="submit" className="kfr-btn kfr-btn--primary kfr-submit" disabled={status === 'loading'}>
-                  {status === 'loading' ? 'Building your AI game plan…' : 'Get my AI game plan →'}
-                </button>
-                <p className="kfr-fineprint">Founders only · your details go straight to the run team.</p>
-              </form>
-            </div>
+            <button type="button" onClick={start} className="kfr-btn kfr-btn--primary kfr-section-cta">Start registration →</button>
           </section>
 
           <footer className="kfr-footer">
@@ -197,16 +153,124 @@ export default function KoochesterFoundersRun() {
           </footer>
         </>
       )}
+
+      {view === 'survey' && (
+        <section className="kfr-survey">
+          {/* Progress header */}
+          <div className="kfr-progress">
+            <div className="kfr-progress-inner">
+              <button type="button" className="kfr-close" onClick={() => setView('landing')} aria-label="Back to page">←</button>
+              <div className="kfr-bar"><div className="kfr-bar-fill" style={{ width: `${Math.round((step / TOTAL) * 100)}%` }} /></div>
+              <span className="kfr-count">{step}<span>/{TOTAL}</span></span>
+            </div>
+          </div>
+
+          <div className="kfr-stage">
+            <div className="kfr-q" key={step}>
+              {step === 1 && (
+                <Q n={1} title="First up — what's your name?">
+                  <input className="kfr-qinput" value={name} onChange={e => setName(e.target.value)} onKeyDown={onEnter} placeholder="Your full name" autoComplete="name" autoFocus />
+                  <Nav canNext={canNext[1]} onNext={next} showBack={false} onBack={back} />
+                </Q>
+              )}
+              {step === 2 && (
+                <Q n={2} title="What's your email?" subtitle="Where we send your confirmation.">
+                  <input className="kfr-qinput" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={onEnter} placeholder="you@company.com" autoComplete="email" autoFocus />
+                  {email.trim().length > 0 && !emailOk && <p className="kfr-qerr">Please enter a valid email.</p>}
+                  <Nav canNext={canNext[2]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 3 && (
+                <Q n={3} title="Your WhatsApp number?" subtitle="The run team will reach you here.">
+                  <input className="kfr-qinput" type="tel" value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={onEnter} placeholder="e.g. 012 345 6789" autoComplete="tel" autoFocus />
+                  <Nav canNext={canNext[3]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 4 && (
+                <Q n={4} title="Are you the founder?">
+                  <div className="kfr-select-list">
+                    <button type="button" className={`kfr-select-btn ${isFounder ? 'is-on' : ''}`} onClick={() => { setIsFounder(true); setTimeout(next, 240) }}>
+                      <span className="kfr-select-key">Y</span> Yes, I&rsquo;m the founder
+                    </button>
+                    <button type="button" className={`kfr-select-btn ${!isFounder ? 'is-on' : ''}`} onClick={() => setIsFounder(false)}>
+                      <span className="kfr-select-key">N</span> No, I&rsquo;m on the team
+                    </button>
+                  </div>
+                  {!isFounder && (
+                    <input className="kfr-qinput kfr-role" value={position} onChange={e => setPosition(e.target.value)} onKeyDown={onEnter} placeholder="Your role — e.g. Head of Ops" autoFocus />
+                  )}
+                  <Nav canNext={canNext[4]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 5 && (
+                <Q n={5} title="What's your company called?">
+                  <input className="kfr-qinput" value={company} onChange={e => setCompany(e.target.value)} onKeyDown={onEnter} placeholder="Your company" autoComplete="organization" autoFocus />
+                  <Nav canNext={canNext[5]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 6 && (
+                <Q n={6} title="How big is your team?">
+                  <div className="kfr-select-grid">
+                    {TEAM_SIZES.map(s => (
+                      <button key={s} type="button" className={`kfr-select-btn kfr-select-btn--pill ${teamSize === s ? 'is-on' : ''}`} onClick={() => { setTeamSize(s); setTimeout(next, 240) }}>{s}</button>
+                    ))}
+                  </div>
+                  <Nav canNext={canNext[6]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 7 && (
+                <Q n={7} title="What industry are you in?" subtitle="Optional — start typing or skip.">
+                  <input className="kfr-qinput" list="kfr-industries" value={industry} onChange={e => setIndustry(e.target.value)} onKeyDown={onEnter} placeholder="e.g. F&B, SaaS, Property…" autoFocus />
+                  <datalist id="kfr-industries">{INDUSTRIES.map(i => <option key={i} value={i} />)}</datalist>
+                  <Nav canNext={canNext[7]} onNext={next} showBack onBack={back} nextLabel={industry.trim() ? 'Next →' : 'Skip →'} />
+                </Q>
+              )}
+              {step === 8 && (
+                <Q n={8} title="What's your biggest challenge in growing your business right now?" subtitle="Be specific — this shapes your recommendation.">
+                  <textarea className="kfr-qinput kfr-qtext" value={challenge} onChange={e => setChallenge(e.target.value)} rows={3} maxLength={3000} placeholder="e.g. We can't follow up with leads fast enough…" autoFocus />
+                  <Nav canNext={canNext[8]} onNext={next} showBack onBack={back} />
+                </Q>
+              )}
+              {step === 9 && (
+                <Q n={9} title="What does a dream 10-out-of-10 look like with AI?" subtitle="If AI worked perfectly for your business — what would it do?">
+                  <textarea className="kfr-qinput kfr-qtext" value={dream} onChange={e => setDream(e.target.value)} rows={3} maxLength={3000} placeholder="e.g. Every enquiry gets an instant, personal reply…" autoFocus />
+                  {error && <p className="kfr-qerr">{error}</p>}
+                  <div className="kfr-survey-nav">
+                    <button type="button" className="kfr-back" onClick={back}>← Back</button>
+                    <button type="button" className="kfr-btn kfr-btn--primary" onClick={submit} disabled={!canNext[9] || status === 'loading'}>
+                      {status === 'loading' ? 'Building your AI game plan…' : 'Get my AI game plan →'}
+                    </button>
+                  </div>
+                </Q>
+              )}
+            </div>
+
+            {/* honeypot — hidden from humans */}
+            <input className="kfr-hp" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} aria-hidden="true" />
+          </div>
+        </section>
+      )}
     </main>
   )
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Q({ n, title, subtitle, children }: { n: number; title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <label className="kfr-field">
-      <span className="kfr-label">{label}{required && <i className="kfr-req">*</i>}</span>
+    <div className="kfr-qbox">
+      <p className="kfr-qnum">{String(n).padStart(2, '0')} <span>—</span> Question {n} of {TOTAL}</p>
+      <h1 className="kfr-qtitle">{title}</h1>
+      {subtitle && <p className="kfr-qsub">{subtitle}</p>}
       {children}
-    </label>
+    </div>
+  )
+}
+
+function Nav({ canNext, onNext, showBack, onBack, nextLabel = 'Next →' }: { canNext: boolean; onNext: () => void; showBack: boolean; onBack: () => void; nextLabel?: string }) {
+  return (
+    <div className={`kfr-survey-nav ${showBack ? '' : 'kfr-survey-nav--end'}`}>
+      {showBack && <button type="button" className="kfr-back" onClick={onBack}>← Back</button>}
+      <button type="button" className="kfr-btn kfr-btn--primary" onClick={onNext} disabled={!canNext}>{nextLabel}</button>
+    </div>
   )
 }
 
@@ -267,12 +331,13 @@ const CSS = `
 .kfr-chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:26px 0 0}
 .kfr-chip{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;padding:8px 14px;border:1px solid var(--line-2);border-radius:999px;color:var(--ink);background:var(--card)}
 .kfr-hero-cta{margin-top:30px}
+.kfr-section-cta{margin-top:30px}
 
 /* BUTTONS */
 .kfr-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:var(--sans);font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:transform .15s ease,background .2s ease,box-shadow .2s ease}
 .kfr-btn--primary{background:var(--clay);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 20px -10px rgba(190,92,59,.7)}
 .kfr-btn--primary:hover{background:var(--clay-deep);box-shadow:0 12px 28px -10px rgba(190,92,59,.85);transform:translateY(-1px)}
-.kfr-btn--primary:disabled{opacity:.65;cursor:default;transform:none}
+.kfr-btn--primary:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
 .kfr-btn--wa{background:#1FA855;color:#fff;box-shadow:0 8px 20px -10px rgba(31,168,85,.8);font-size:17px;padding:17px 30px}
 .kfr-btn--wa:hover{background:#178a45;transform:translateY(-1px)}
 
@@ -287,30 +352,43 @@ const CSS = `
 .kfr-why{margin:22px auto 0;max-width:600px;font-size:15px;line-height:1.6;color:var(--ink);background:var(--clay-tint);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
 .kfr-why b{color:var(--clay-deep)}
 
-/* FORM */
-.kfr-form-wrap{max-width:640px;margin:56px auto 0;padding:0 22px}
-.kfr-form-card{background:var(--card);border:1px solid var(--line-2);border-radius:24px;padding:34px clamp(20px,4vw,38px);box-shadow:0 30px 70px -40px rgba(33,28,22,.45)}
-.kfr-form-title{margin-top:8px}
-.kfr-form-sub{margin:12px 0 0;font-size:15px;line-height:1.55;color:var(--ink-soft)}
-.kfr-form{margin-top:26px;display:flex;flex-direction:column;gap:18px}
-.kfr-field{display:flex;flex-direction:column;gap:8px}
-.kfr-label{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.35}
-.kfr-req{color:var(--clay-deep);font-style:normal;margin-left:3px}
-.kfr-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.kfr-input{width:100%;font-family:var(--sans);font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line-2);border-radius:12px;padding:13px 14px;transition:border-color .15s ease,box-shadow .15s ease;outline:none}
-.kfr-input::placeholder{color:var(--ink-faint)}
-.kfr-input:focus{border-color:var(--clay);box-shadow:0 0 0 3px var(--clay-tint)}
-.kfr-textarea{resize:vertical;min-height:84px;line-height:1.5}
-.kfr-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kfr-toggle-btn{font-family:var(--sans);font-size:14.5px;font-weight:600;padding:12px 10px;border:1px solid var(--line-2);border-radius:12px;background:var(--paper);color:var(--ink-soft);cursor:pointer;transition:all .15s ease}
-.kfr-toggle-btn.is-on{background:var(--clay-tint);border-color:var(--clay);color:var(--clay-deep)}
-.kfr-pills{display:flex;flex-wrap:wrap;gap:9px}
-.kfr-pill{font-family:var(--mono);font-size:13px;padding:9px 15px;border:1px solid var(--line-2);border-radius:999px;background:var(--paper);color:var(--ink-soft);cursor:pointer;transition:all .15s ease}
-.kfr-pill.is-on{background:var(--clay);border-color:var(--clay);color:#fff}
+/* ── TYPEFORM-STYLE SURVEY ───────────────────────────────────────── */
+.kfr-survey{min-height:100vh;display:flex;flex-direction:column}
+.kfr-progress{position:sticky;top:0;z-index:10;background:rgba(250,247,242,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.kfr-progress-inner{max-width:640px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:14px}
+.kfr-close{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--line-2);background:var(--card);color:var(--ink-soft);font-size:17px;cursor:pointer;line-height:1;transition:all .15s ease}
+.kfr-close:hover{border-color:var(--ink);color:var(--ink)}
+.kfr-bar{flex:1;height:5px;background:var(--paper-2);border-radius:999px;overflow:hidden}
+.kfr-bar-fill{height:100%;background:var(--clay);border-radius:999px;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.kfr-count{flex:0 0 auto;font-family:var(--mono);font-size:13px;color:var(--ink-soft);font-weight:500}
+.kfr-count span{color:var(--ink-faint)}
+.kfr-stage{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(36px,9vh,90px) 22px 60px}
+.kfr-q{width:100%;max-width:600px;animation:kfrQ .4s cubic-bezier(.2,.7,.2,1) both}
+.kfr-qbox{display:flex;flex-direction:column}
+.kfr-qnum{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--clay-deep);font-weight:500;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.kfr-qnum span{color:var(--ink-faint)}
+.kfr-qtitle{font-family:var(--serif);font-weight:360;letter-spacing:-.01em;font-size:clamp(26px,4.6vw,40px);line-height:1.14;margin:0;color:var(--ink)}
+.kfr-qsub{margin:14px 0 0;font-size:16px;line-height:1.55;color:var(--ink-soft)}
+.kfr-qinput{width:100%;margin-top:26px;font-family:var(--sans);font-size:18px;color:var(--ink);background:transparent;border:none;border-bottom:2px solid var(--line-2);border-radius:0;padding:10px 2px;transition:border-color .15s ease;outline:none}
+.kfr-qinput::placeholder{color:var(--ink-faint)}
+.kfr-qinput:focus{border-color:var(--clay)}
+.kfr-qtext{border:1px solid var(--line-2);border-radius:14px;background:var(--card);padding:14px 16px;resize:vertical;min-height:96px;line-height:1.5;font-size:17px}
+.kfr-qtext:focus{border-color:var(--clay);box-shadow:0 0 0 3px var(--clay-tint)}
+.kfr-role{margin-top:16px}
+.kfr-qerr{margin:10px 0 0;font-size:14px;color:var(--clay-deep);font-weight:500}
+.kfr-select-list{display:flex;flex-direction:column;gap:11px;margin-top:26px}
+.kfr-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:26px}
+.kfr-select-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font-family:var(--sans);font-size:16px;font-weight:500;color:var(--ink);background:var(--card);border:1.5px solid var(--line-2);border-radius:14px;padding:16px 18px;cursor:pointer;transition:all .15s ease;min-height:56px}
+.kfr-select-btn:hover{border-color:var(--clay);background:#fff}
+.kfr-select-btn.is-on{border-color:var(--clay);background:var(--clay-tint);box-shadow:0 0 0 3px var(--clay-tint)}
+.kfr-select-btn--pill{justify-content:center;text-align:center;min-height:58px;font-family:var(--mono);font-size:15px;font-weight:500}
+.kfr-select-key{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--paper-2);color:var(--ink-soft);font-family:var(--mono);font-size:12px;font-weight:600}
+.kfr-select-btn.is-on .kfr-select-key{background:var(--clay);color:#fff}
+.kfr-survey-nav{margin-top:32px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.kfr-survey-nav--end{justify-content:flex-end}
+.kfr-back{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink-soft);background:transparent;border:none;cursor:pointer;padding:10px 4px}
+.kfr-back:hover{color:var(--ink)}
 .kfr-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
-.kfr-error{margin:2px 0 0;font-size:14px;color:var(--clay-deep);font-weight:500}
-.kfr-submit{margin-top:6px;width:100%}
-.kfr-fineprint{margin:12px 0 0;text-align:center;font-size:12.5px;color:var(--ink-faint)}
 
 /* SUCCESS */
 .kfr-success{max-width:640px;margin:0 auto;padding:70px 22px 40px;animation:kfrRise .6s cubic-bezier(.2,.7,.2,1) both}
@@ -326,6 +404,7 @@ const CSS = `
 /* MOTION */
 @keyframes kfrRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes kfrPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes kfrQ{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 /* FOOTER */
 .kfr-footer{max-width:680px;margin:64px auto 0;padding:26px 22px 48px;border-top:1px solid var(--line);text-align:center;font-size:13.5px;color:var(--ink-faint)}
@@ -338,24 +417,20 @@ const CSS = `
   .kfr-chip{font-size:12px;padding:8px 12px}
   .kfr-posters{grid-template-columns:1fr;max-width:440px;gap:14px;margin-top:36px}
   .kfr-section{padding:48px 20px 0}
-  .kfr-form-wrap{margin-top:44px;padding:0 16px}
-  .kfr-form-card{padding:28px 18px}
-  .kfr-row{grid-template-columns:1fr}
-  .kfr-toggle{grid-template-columns:1fr}
-  /* Bigger, easier touch targets on phones (min 44px). */
-  .kfr-pills{gap:8px}
-  .kfr-pill{padding:12px 16px;font-size:14px;min-height:44px;display:inline-flex;align-items:center}
-  .kfr-toggle-btn{min-height:48px}
-  .kfr-input{padding:14px}
   .kfr-btn{width:100%}
-  .kfr-hero-cta{width:auto;align-self:center}
+  .kfr-hero-cta,.kfr-section-cta{width:auto;align-self:center}
+  .kfr-progress-inner{padding:12px 18px;gap:10px}
+  .kfr-stage{padding:32px 20px 48px}
+  .kfr-qtext{font-size:16px}
+  .kfr-select-grid{grid-template-columns:1fr 1fr}
+  .kfr-survey-nav .kfr-btn{width:auto}
 }
 @media(max-width:380px){
   .kfr-chip{font-size:11.5px;padding:7px 11px}
-  .kfr-form-card{padding:24px 15px}
+  .kfr-select-grid{gap:9px}
 }
 @media(prefers-reduced-motion:reduce){
-  .kfr-hero,.kfr-success,.kfr-check{animation:none}
-  .kfr-btn{transition:none}
+  .kfr-hero,.kfr-success,.kfr-check,.kfr-q{animation:none}
+  .kfr-btn,.kfr-bar-fill{transition:none}
 }
 `

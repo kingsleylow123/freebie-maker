@@ -7,11 +7,6 @@ const WA_TEXT = "Hi! I'm a founder and I want to register for the Koochester Fou
 const WA_LINK = `https://wa.me/60102099299?text=${encodeURIComponent(WA_TEXT)}`
 
 const TEAM_SIZES = ['Solo', '2–5', '5–10', '10–20', '20–30', '30–50', '50–100', '100–200']
-const INDUSTRIES = [
-  'F&B / Restaurants', 'Retail / E-commerce', 'Professional Services', 'Property / Construction',
-  'Marketing / Agency', 'Technology / SaaS', 'Finance / Insurance', 'Health / Wellness',
-  'Education / Training', 'Manufacturing', 'Logistics', 'Consulting',
-]
 const TOTAL = 9
 
 type View = 'landing' | 'survey' | 'done'
@@ -219,9 +214,8 @@ export default function KoochesterFoundersRun() {
                 </Q>
               )}
               {step === 7 && (
-                <Q n={7} title="What industry are you in?" subtitle="Optional — start typing or skip.">
-                  <input className="kfr-qinput" list="kfr-industries" value={industry} onChange={e => setIndustry(e.target.value)} onKeyDown={onEnter} placeholder="e.g. F&B, SaaS, Property…" autoFocus />
-                  <datalist id="kfr-industries">{INDUSTRIES.map(i => <option key={i} value={i} />)}</datalist>
+                <Q n={7} title="What industry are you in?" subtitle="Optional — type it in, or skip.">
+                  <input className="kfr-qinput" value={industry} onChange={e => setIndustry(e.target.value)} onKeyDown={onEnter} placeholder="e.g. F&B, SaaS, Property" autoFocus />
                   <Nav canNext={canNext[7]} onNext={next} showBack onBack={back} nextLabel={industry.trim() ? 'Next →' : 'Skip →'} />
                 </Q>
               )}

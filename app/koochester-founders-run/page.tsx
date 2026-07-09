@@ -9,6 +9,12 @@ const WA_LINK = `https://wa.me/60102099299?text=${encodeURIComponent(WA_TEXT)}`
 const TEAM_SIZES = ['Solo', '2–5', '5–10', '10–20', '20–30', '30–50', '50–100', '100–200']
 const TOTAL = 9
 
+// Scarcity bar — edit these two numbers any time to update the "spots taken" display.
+const SPOTS_TAKEN = 223
+const SPOTS_TOTAL = 300
+const SPOTS_LEFT = SPOTS_TOTAL - SPOTS_TAKEN
+const SPOTS_PCT = Math.round((SPOTS_TAKEN / SPOTS_TOTAL) * 1000) / 10
+
 type View = 'landing' | 'survey' | 'done'
 
 export default function KoochesterFoundersRun() {
@@ -114,6 +120,15 @@ export default function KoochesterFoundersRun() {
               <span className="kfr-chip">16 Aug 2026 · 7:00 AM</span>
               <span className="kfr-chip">KLCC Park, KL</span>
               <span className="kfr-chip">300 founders · RM149</span>
+            </div>
+            <div className="kfr-spots">
+              <div className="kfr-spots-row">
+                <span className="kfr-spots-label"><b>{SPOTS_TAKEN}</b> / {SPOTS_TOTAL} spots already taken</span>
+                <span className="kfr-spots-left">Only {SPOTS_LEFT} left</span>
+              </div>
+              <div className="kfr-spots-bar">
+                <div className="kfr-spots-fill" style={{ ['--w']: `${SPOTS_PCT}%` } as React.CSSProperties} />
+              </div>
             </div>
             <button type="button" onClick={start} className="kfr-btn kfr-btn--primary kfr-hero-cta">Register for the run →</button>
           </header>
@@ -324,8 +339,18 @@ const CSS = `
 .kfr-lead{max-width:620px;margin:20px auto 0;font-size:clamp(16px,2.1vw,20px);line-height:1.55;color:var(--ink-soft)}
 .kfr-chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:26px 0 0}
 .kfr-chip{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;padding:8px 14px;border:1px solid var(--line-2);border-radius:999px;color:var(--ink);background:var(--card)}
-.kfr-hero-cta{margin-top:30px}
+.kfr-hero-cta{margin-top:28px}
 .kfr-section-cta{margin-top:30px}
+
+/* SCARCITY BAR */
+.kfr-spots{max-width:400px;margin:28px auto 0;text-align:left}
+.kfr-spots-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 8px}
+.kfr-spots-label{font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--ink-soft)}
+.kfr-spots-label b{color:var(--ink);font-weight:600}
+.kfr-spots-left{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay-deep);font-weight:600;white-space:nowrap}
+.kfr-spots-bar{height:9px;background:var(--paper-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.kfr-spots-fill{height:100%;width:var(--w);border-radius:999px;background:linear-gradient(90deg,var(--clay),var(--clay-deep));box-shadow:inset 0 1px 0 rgba(255,255,255,.35);animation:kfrSpots 1.15s cubic-bezier(.2,.7,.2,1) .2s both}
+@keyframes kfrSpots{from{width:0}to{width:var(--w)}}
 
 /* BUTTONS */
 .kfr-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:var(--sans);font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;border:1px solid transparent;cursor:pointer;text-decoration:none;transition:transform .15s ease,background .2s ease,box-shadow .2s ease}
@@ -424,7 +449,7 @@ const CSS = `
   .kfr-select-grid{gap:9px}
 }
 @media(prefers-reduced-motion:reduce){
-  .kfr-hero,.kfr-success,.kfr-check,.kfr-q{animation:none}
+  .kfr-hero,.kfr-success,.kfr-check,.kfr-q,.kfr-spots-fill{animation:none}
   .kfr-btn,.kfr-bar-fill{transition:none}
 }
 `

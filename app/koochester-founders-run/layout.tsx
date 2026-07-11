@@ -37,6 +37,11 @@ export const metadata: Metadata = {
     'Malaysia founder event',
   ],
   alternates: { canonical: 'https://www.claudemalaysia.com/koochester-founders-run' },
+  icons: {
+    icon: '/koochester/cm-mark.svg',
+    shortcut: '/koochester/cm-mark.svg',
+    apple: '/koochester/cm-mark.svg',
+  },
   openGraph: {
     title: "Koochester Founder's Run 2026 — by application",
     description:

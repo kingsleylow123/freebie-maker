@@ -143,6 +143,7 @@ export default function KoochesterFoundersRun() {
               </div>
             </div>
             <button type="button" onClick={start} className="kfr-btn kfr-btn--primary kfr-hero-cta">Register for the run →</button>
+            <p className="kfr-apply">By application only · founders welcome</p>
           </header>
 
           {/* ═══ POSTERS ═══ */}
@@ -157,6 +158,7 @@ export default function KoochesterFoundersRun() {
           <section className="kfr-section">
             <p className="kfr-eyebrow kfr-eyebrow--center">Who&rsquo;s in the room</p>
             <h2 className="kfr-h2">Run beside the people building Malaysia.</h2>
+            <p className="kfr-hosts">Hosted by <b>Koochester</b>, <b>Tealive</b> &amp; <b>Warrior Plunge</b> · in collaboration with <b>Claude Malaysia</b></p>
             <p className="kfr-body">
               300 founders, one curated morning. Expect a room that&rsquo;s included names like
               Bryan&nbsp;Loo (Tealive), Harith&nbsp;Iskander, Dr&nbsp;Ong&nbsp;Kian&nbsp;Ming,
@@ -168,10 +170,11 @@ export default function KoochesterFoundersRun() {
               first move with AI in the afternoon. Two minutes → your personalised game plan.
             </p>
             <button type="button" onClick={start} className="kfr-btn kfr-btn--primary kfr-section-cta">Start registration →</button>
+            <p className="kfr-apply">By application only</p>
           </section>
 
           <footer className="kfr-footer">
-            <p>Koochester Founder&rsquo;s Run · in collaboration with <b>Claude Malaysia</b></p>
+            <p>Koochester Founder&rsquo;s Run · hosted by Koochester, Tealive &amp; Warrior Plunge · in collaboration with <b>Claude Malaysia</b></p>
           </footer>
         </>
       )}
@@ -319,8 +322,8 @@ function Success({ recommendation, firstName }: { recommendation: string | null;
         )}
 
         <p className="kfr-body kfr-success-body">
-          Tap below to confirm your spot with the run team on WhatsApp — that locks in your
-          registration for the Koochester Founder&rsquo;s Run.
+          Tap below to send your application to the run team on WhatsApp — they&rsquo;ll review
+          and confirm your spot for the Koochester Founder&rsquo;s Run.
         </p>
 
         <a href={WA_LINK} target="_blank" rel="noopener noreferrer" onClick={() => fbqTrack('Contact')} className="kfr-btn kfr-btn--wa">
@@ -359,6 +362,9 @@ const CSS = `
 .kfr-chip{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;padding:8px 14px;border:1px solid var(--line-2);border-radius:999px;color:var(--ink);background:var(--card)}
 .kfr-hero-cta{margin-top:28px}
 .kfr-section-cta{margin-top:30px}
+.kfr-apply{margin:14px 0 0;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay-deep);font-weight:600}
+.kfr-hosts{margin:16px auto 0;max-width:540px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;line-height:1.6;color:var(--ink-faint)}
+.kfr-hosts b{color:var(--ink-soft);font-weight:600}
 
 /* SCARCITY BAR */
 .kfr-spots{max-width:400px;margin:28px auto 0;text-align:left}

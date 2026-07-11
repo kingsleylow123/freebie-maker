@@ -23,14 +23,24 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.claudemalaysia.com'),
-  title: "Koochester Founder's Run 2026 — Register | Claude Malaysia",
+  title: "Koochester Founder's Run 2026 — by application | Claude Malaysia",
   description:
-    "Register for the Koochester Founder's Run — a curated morning run for 300 Malaysian founders at KLCC Park, 16 August 2026. Meet, learn and grow the healthy way, then get your personalised AI game plan with Claude Malaysia.",
+    "The Koochester Founder's Run — a curated morning run for 300 Malaysian founders at KLCC Park, 16 August 2026. Hosted by Koochester, Tealive & Warrior Plunge, in collaboration with Claude Malaysia. By application only — register and get your personalised AI game plan.",
+  keywords: [
+    "Koochester Founder's Run",
+    'Koochester',
+    'Tealive',
+    'Warrior Plunge',
+    'Claude Malaysia',
+    'founders run KL',
+    'KLCC founders run 2026',
+    'Malaysia founder event',
+  ],
   alternates: { canonical: 'https://www.claudemalaysia.com/koochester-founders-run' },
   openGraph: {
-    title: "Koochester Founder's Run 2026 — Register",
+    title: "Koochester Founder's Run 2026 — by application",
     description:
-      'A curated morning run for 300 Malaysian founders. KLCC Park · 16 Aug 2026. Register and get your personalised AI game plan with Claude Malaysia.',
+      'A curated morning run for 300 Malaysian founders. Hosted by Koochester, Tealive & Warrior Plunge, in collaboration with Claude Malaysia. KLCC Park · 16 Aug 2026 · by application only.',
     url: 'https://www.claudemalaysia.com/koochester-founders-run',
     images: ['/koochester/poster-1.jpg'],
     type: 'website',

@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: 'https://www.claudemalaysia.com/koochester-founders-run' },
   icons: {
-    icon: '/koochester/cm-mark.svg',
+    icon: [{ url: '/koochester/cm-mark.svg', type: 'image/svg+xml' }],
     shortcut: '/koochester/cm-mark.svg',
     apple: '/koochester/cm-mark.svg',
   },

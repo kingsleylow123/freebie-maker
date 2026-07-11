@@ -6,6 +6,17 @@ import { useState, useEffect } from 'react'
 const WA_TEXT = "Hi! I'm a founder and I want to register for the Koochester Founder's Run 🏃 (via Claude Malaysia)"
 const WA_LINK = `https://wa.me/60102099299?text=${encodeURIComponent(WA_TEXT)}`
 
+// Meta Pixel conversion events. The base pixel (id 3618851711751697) is installed
+// globally in app/layout.tsx (fires PageView). Here we fire the conversion events:
+// 'Lead' when the survey is completed, 'Contact' when they tap through to WhatsApp.
+// No-op if fbq isn't loaded (e.g. blocked by Meta traffic-permission settings).
+function fbqTrack(event: string) {
+  try {
+    const f = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq
+    if (typeof f === 'function') f('track', event)
+  } catch { /* pixel not available — ignore */ }
+}
+
 const TEAM_SIZES = ['Solo', '2–5', '5–10', '10–20', '20–30', '30–50', '50–100', '100–200']
 const TOTAL = 9
 
@@ -85,6 +96,7 @@ export default function KoochesterFoundersRun() {
         return
       }
       setRecommendation(data.recommendation || null)
+      fbqTrack('Lead') // completed registration survey
       setView('done')
     } catch {
       setError('Network error — please try again.')
@@ -311,7 +323,7 @@ function Success({ recommendation, firstName }: { recommendation: string | null;
           registration for the Koochester Founder&rsquo;s Run.
         </p>
 
-        <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="kfr-btn kfr-btn--wa">
+        <a href={WA_LINK} target="_blank" rel="noopener noreferrer" onClick={() => fbqTrack('Contact')} className="kfr-btn kfr-btn--wa">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.15-1.77-.87-2-.97-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.63.07-.3-.15-1.26-.46-2.4-1.48-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.6.13-.14.3-.34.44-.5.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.66-1.6-.9-2.18-.24-.57-.48-.5-.66-.5l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.22 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35zM12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.16l-.3-.18-2.85.83.76-2.78-.2-.32A8.2 8.2 0 1 1 12 20.2z" /></svg>
           WhatsApp our team now
         </a>

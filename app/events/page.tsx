@@ -610,8 +610,15 @@ export default function EventsPage() {
     })
   }, [events])
 
-  // Skip the weekly 6am fitness — feature the next real workshop (e.g. CashFlowOS) instead.
-  const featured = sorted.find(ev => !isFitness(ev)) ?? sorted[0]
+  // "Next up" = the soonest UPCOMING event that isn't the weekly 6am fitness, so it lands on
+  // the next real workshop (e.g. CashFlowOS) — never a past event or the recurring fitness.
+  const nowMs = Date.now()
+  const isUpcomingEv = (ev: PublicEvent) =>
+    (dateParts(eventISO(ev))?.ms ?? -Infinity) >= nowMs - 12 * 3600 * 1000
+  const featured =
+    sorted.find(ev => isUpcomingEv(ev) && !isFitness(ev)) ??
+    sorted.find(ev => !isFitness(ev)) ??
+    sorted[0]
   const hasEvents = sorted.length > 0
 
   useReveal(events === null ? 'loading' : `${view}:${sorted.length}`)

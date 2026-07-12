@@ -28,6 +28,7 @@ interface PublicListing {
   price_early?: string
   price_public?: string
   highlights?: string[]
+  event_type?: string
 }
 
 interface PublicEvent {
@@ -58,6 +59,12 @@ const KL = 'Asia/Kuala_Lumpur'
 
 function eventISO(ev: PublicEvent): string | null {
   return ev.public_listing?.starts_at || ev.date || null
+}
+
+// "Next up" rule: never feature the weekly 6am fitness as the next event.
+function isFitness(ev: PublicEvent): boolean {
+  const type = (ev.public_listing?.event_type || '').toLowerCase()
+  return type === 'fitness' || /fitness/i.test(ev.name || '')
 }
 
 function dateParts(iso: string | null) {
@@ -603,7 +610,8 @@ export default function EventsPage() {
     })
   }, [events])
 
-  const featured = sorted[0]
+  // Skip the weekly 6am fitness — feature the next real workshop (e.g. CashFlowOS) instead.
+  const featured = sorted.find(ev => !isFitness(ev)) ?? sorted[0]
   const hasEvents = sorted.length > 0
 
   useReveal(events === null ? 'loading' : `${view}:${sorted.length}`)

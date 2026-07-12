@@ -9,14 +9,14 @@ const UPDATED = '11 July 2026'
 const SUPPORT_EMAIL = 'support@cmoaiconsulting.com'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Claude Malaysia',
+  title: 'Privacy Policy — Claude Malaysia',
   description:
-    'The terms that govern your use of the Claude Malaysia website, community, events and paid programs. Operated by CMO Consulting Sdn. Bhd.',
-  alternates: { canonical: 'https://www.claudemalaysia.com/terms' },
-  openGraph: { title: 'Terms of Service — Claude Malaysia', type: 'website', url: 'https://www.claudemalaysia.com/terms' },
+    'How Claude Malaysia collects, uses and protects your personal data, in line with Malaysia’s Personal Data Protection Act (PDPA). Operated by CMO Consulting Sdn. Bhd.',
+  alternates: { canonical: 'https://www.claudemalaysia.com/privacy' },
+  openGraph: { title: 'Privacy Policy — Claude Malaysia', type: 'website', url: 'https://www.claudemalaysia.com/privacy' },
 }
 
-export default function TermsPage() {
+export default function PrivacyPage() {
   return (
     <main className={`lgl-page ${fraunces.variable} ${hanken.variable} ${plexMono.variable}`}>
       <header className="lgl-head">
@@ -26,10 +26,10 @@ export default function TermsPage() {
 
       <div className="lgl-wrap">
         <p className="lgl-eyebrow">Legal</p>
-        <h1 className="lgl-h1">Terms of Service</h1>
+        <h1 className="lgl-h1">Privacy Policy</h1>
         <p className="lgl-lead">
-          These terms govern your use of the Claude Malaysia website, community, events and paid
-          programs. By using them, you agree to these terms.
+          How we collect, use and protect your personal data, in line with Malaysia&rsquo;s Personal
+          Data Protection Act 2010 (PDPA).
         </p>
         <p className="lgl-meta">Operated by CMO Consulting Sdn. Bhd. (202601024007) · Last updated {UPDATED}</p>
       </div>
@@ -39,92 +39,94 @@ export default function TermsPage() {
         <p>
           The Claude Malaysia website, community and events are operated by <strong>CMO Consulting
           Sdn. Bhd.</strong> (Reg. No. 202601024007 / 1686104-X), a company registered in Malaysia
-          (&ldquo;Claude Malaysia&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). We are an{' '}
-          <strong>independent community and are not affiliated with, or endorsed by, Anthropic</strong>.
+          (&ldquo;Claude Malaysia&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). This policy explains how
+          we collect, use and protect your personal data.
         </p>
 
-        <h2>2. Accepting these terms</h2>
+        <h2>2. What we collect</h2>
+        <ul>
+          <li>
+            <strong>You give us:</strong> your name, email, phone / WhatsApp number, and anything you
+            type into our forms, surveys, chat widget or messages.
+          </li>
+          <li>
+            <strong>When you pay:</strong> billing details are collected and processed by our payment
+            provider (Stripe) — we don&rsquo;t store your full card number.
+          </li>
+          <li>
+            <strong>Automatically:</strong> basic usage data such as device, browser and pages
+            visited, via cookies and analytics.
+          </li>
+        </ul>
+
+        <h2>3. How we use it</h2>
         <p>
-          By accessing our website or taking part in our community, events or paid programs, you agree
-          to these Terms of Service and our <a href="/refund-policy">Refund Policy</a>. If you
-          don&rsquo;t agree, please don&rsquo;t use our services.
+          To register you for and run our workshops, challenges and events; to reply to you and
+          provide support; to process payments; to send you updates, reminders and marketing about
+          Claude Malaysia (you can opt out any time); and to improve our website and programs.
         </p>
 
-        <h2>3. Eligibility</h2>
+        <h2>4. Marketing messages</h2>
         <p>
-          You must be at least 18 years old (or have a parent or guardian&rsquo;s consent) and use our
-          services only for lawful purposes.
+          With your consent, we may contact you by email, WhatsApp or SMS about events and offers. You
+          can opt out at any time by replying STOP, using the unsubscribe link, or emailing us — and
+          we&rsquo;ll stop.
         </p>
 
-        <h2>4. Events, workshops and payments</h2>
+        <h2>5. Who we share it with</h2>
         <p>
-          Event details, availability and prices may change, and seats are subject to availability.
-          Payment confirms your booking. Cancellations, refunds and transfers are covered by our{' '}
-          <a href="/refund-policy">Refund Policy</a>.
+          We don&rsquo;t sell your personal data. We share it only with trusted service providers who
+          help us operate — such as <strong>Stripe</strong> (payments), <strong>Meta / Instagram and
+          WhatsApp</strong> (ads and messaging), <strong>Google</strong> (email and analytics), and
+          our hosting and database providers. We may also disclose data if required by law.
         </p>
 
-        <h2>5. Community conduct</h2>
+        <h2>6. Cookies and analytics</h2>
         <p>
-          Our community runs on trust and respect. You agree not to spam, harass others, share illegal
-          or harmful content, or disrupt our events. We may remove content or suspend access if these
-          terms are broken, and we <strong>reserve the right to remove or ban anyone from our
-          community at our discretion</strong>.
+          We use cookies and analytics tools to understand how the site is used and to improve it. You
+          can control cookies through your browser settings.
         </p>
 
-        <h2>6. Our content and materials</h2>
+        <h2>7. How long we keep it</h2>
         <p>
-          Our website content, workshop materials, templates and resources belong to us or our
-          licensors. You may use them for your own learning and business, but you may not copy, resell,
-          redistribute or republish them without our written permission.
+          We keep your personal data only as long as needed for the purposes above, or as required by
+          law (for example, tax and accounting records).
         </p>
 
-        <h2>7. Your contributions</h2>
+        <h2>8. Your rights (PDPA)</h2>
         <p>
-          If you share content with us (builds, comments, testimonials), you&rsquo;re responsible for
-          it and you give us permission to display and share it in connection with Claude Malaysia.
-          Please don&rsquo;t post anything you don&rsquo;t have the right to share.
-        </p>
-        <p>
-          We also <strong>reserve the right to use content shared during our workshops, WhatsApp groups
-          and events</strong> (including photos, recordings, chats and screenshots) <strong>publicly</strong>{' '}
-          — for example in our marketing, social media and case studies.
+          You may ask us to <strong>access or correct</strong> your personal data, or to{' '}
+          <strong>withdraw your consent</strong> or limit how we use it. To do so, email us at the
+          address below. Withdrawing consent may mean we can no longer provide certain services.
         </p>
 
-        <h2>8. No guarantees</h2>
+        <h2>9. Security</h2>
         <p>
-          Our programs teach tools and methods. They are provided <strong>&ldquo;as is&rdquo;</strong>,
-          and we <strong>do not guarantee any specific result, income or outcome</strong> — what you
-          achieve depends on you.
+          We take reasonable steps to protect your personal data. No online service can be 100%
+          secure, but we work to keep your information safe.
         </p>
 
-        <h2>9. Third-party tools and links</h2>
+        <h2>10. Third-party links</h2>
         <p>
-          We may link to or rely on third-party tools and websites (for payment, scheduling, or AI
-          tools). We&rsquo;re not responsible for their content, availability or practices.
+          Our site may link to other websites. We&rsquo;re not responsible for their content or
+          privacy practices — please review their policies.
         </p>
 
-        <h2>10. Limitation of liability</h2>
+        <h2>11. Children</h2>
         <p>
-          To the fullest extent allowed by law, Claude Malaysia and CMO Consulting Sdn. Bhd. are not
-          liable for indirect or consequential losses. Where we are liable, our total liability is
-          limited to the amount you paid us for the relevant program.
+          Our services are intended for adults (18+). We don&rsquo;t knowingly collect personal data
+          from children.
         </p>
 
-        <h2>11. Changes and termination</h2>
+        <h2>12. Changes</h2>
         <p>
-          We may update these terms or our services from time to time; your continued use means you
-          accept the changes. We may suspend or end access for anyone who breaches these terms.
-        </p>
-
-        <h2>12. Governing law</h2>
-        <p>
-          These terms are governed by the laws of <strong>Malaysia</strong>, and the Malaysian courts
-          have jurisdiction.
+          We may update this policy from time to time; the latest version will always be on this page.
         </p>
 
         <h2>13. Contact</h2>
         <p>
-          Questions about these terms? Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+          Questions or requests about your personal data? Email{' '}
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
         </p>
 
         <p className="lgl-updated">

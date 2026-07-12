@@ -102,6 +102,7 @@ export default function RefundPolicyPage() {
         <nav>
           <a href="/terms">Terms</a>
           <a href="/refund-policy">Refund Policy</a>
+          <a href="/privacy">Privacy</a>
           <a href="/join">Join</a>
         </nav>
       </footer>

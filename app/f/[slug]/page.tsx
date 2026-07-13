@@ -73,7 +73,7 @@ export default async function FreebiePage({ params }: Props) {
 
   if (!data) notFound();
 
-  const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/GSONh9iwgvPIYDV16fOALM?s=cl&p=i&ilr=1&amv=1";
+  const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/Kp8h4bqweRK1cAFQt9YIXb?s=sh&p=i&ilr=4&amv=1";
   const ctaText = data.cta_text || "Join Claude Malaysia Free WhatsApp Group →";
   const whatsappHref = data.whatsapp_link || DEFAULT_WHATSAPP;
   const totalSteps = data.sections.length;

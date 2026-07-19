@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
           .filter(Boolean)
       : [];
 
-    const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/Kp8h4bqweRK1cAFQt9YIXb?s=sh&p=i&ilr=4&amv=1";
+    const DEFAULT_WHATSAPP = "https://chat.whatsapp.com/DVcakxARHGgJloz9x3odXt?s=cl&p=i&ilr=4";
 
     if (!reelInput?.trim()) {
       return NextResponse.json(
